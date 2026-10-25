@@ -185,13 +185,35 @@ def test_dry_run_posts_nothing():
         restore_env(old)
 
 
+def test_dotenv_fills_missing_only():
+    import engine.slack as slack_mod
+    repo_root = Path(slack_mod.__file__).resolve().parent.parent
+    env_path = repo_root / ".env"
+    assert not env_path.exists(), ".env must never exist in the repo checkout"
+    old = {k: os.environ.get(k) for k in ("SLACK_BOT_TOKEN", "SLACK_CHANNEL", "SLACK_DRY_RUN")}
+    os.environ.pop("SLACK_BOT_TOKEN", None)
+    os.environ.pop("SLACK_CHANNEL", None)
+    os.environ.pop("SLACK_DRY_RUN", None)
+    env_path.write_text("# test only\nSLACK_BOT_TOKEN=dotenv-token-123\nSLACK_CHANNEL=C999DOTENV\n")
+    try:
+        token, channel = slack.config()
+        assert token == "dotenv-token-123" and channel == "C999DOTENV"
+        os.environ["SLACK_BOT_TOKEN"] = "env-wins-token"
+        token, _ = slack.config()
+        assert token == "env-wins-token", "real env must win over .env"
+    finally:
+        env_path.unlink(missing_ok=True)
+        restore_env(old)
+
+
 if __name__ == "__main__":
     for name, fn in [("config_missing", test_config_missing),
                      ("post_message_request", test_post_message_request),
                      ("post_message_refused", test_post_message_refused),
                      ("post_pending_marks_only_successes", test_post_pending_marks_only_successes),
                      ("post_summary_text", test_post_summary_text),
-                     ("dry_run_posts_nothing", test_dry_run_posts_nothing)]:
+                     ("dry_run_posts_nothing", test_dry_run_posts_nothing),
+                     ("dotenv_fills_missing_only", test_dotenv_fills_missing_only)]:
         check(name, fn)
     print(f"\n{len(PASSED)} passed, {len(FAILED)} failed")
     sys.exit(1 if FAILED else 0)

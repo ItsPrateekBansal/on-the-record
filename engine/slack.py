@@ -7,7 +7,8 @@ and it posts exactly those lines, word for word. It never posts contract
 prices, clause text, invoice lines or dispute drafts — those stay on the
 local dashboard.
 
-Configuration comes from the environment only, never from a file in the repo:
+Configuration comes from the environment, or from a repo-root .env file
+(gitignored, local to the machine running the watchdog — never committed):
 
     SLACK_BOT_TOKEN   bot token for the Slack app
     SLACK_CHANNEL     channel ID (C...) preferred; a #channel name also works
@@ -49,8 +50,33 @@ class SlackError(Exception):
     pass
 
 
+def _load_dotenv():
+    """Fill missing settings from a repo-root .env file, if one exists.
+
+    .env is gitignored: it lives on the machine running the watchdog and is
+    never committed or pushed. Real environment variables always win over
+    .env, and values are never printed or logged.
+    """
+    env_path = Path(__file__).resolve().parent.parent / ".env"
+    if not env_path.exists():
+        return
+    try:
+        lines = env_path.read_text().splitlines()
+    except OSError:
+        return
+    for line in lines:
+        line = line.strip()
+        if not line or line.startswith("#") or "=" not in line:
+            continue
+        key, value = line.split("=", 1)
+        key, value = key.strip(), value.strip().strip("\"'")
+        if key in ("SLACK_BOT_TOKEN", "SLACK_CHANNEL", "SLACK_DRY_RUN"):
+            os.environ.setdefault(key, value)
+
+
 def config():
-    """(token, channel) from the environment, or raise NotConfigured."""
+    """(token, channel) from the environment (or repo-root .env), or raise NotConfigured."""
+    _load_dotenv()
     token = os.environ.get("SLACK_BOT_TOKEN", "").strip()
     channel = os.environ.get("SLACK_CHANNEL", "").strip()
     missing = [n for n, v in (("SLACK_BOT_TOKEN", token), ("SLACK_CHANNEL", channel)) if not v]

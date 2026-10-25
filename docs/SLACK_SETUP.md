@@ -35,6 +35,18 @@ export SLACK_BOT_TOKEN="paste-the-bot-token-here"
 export SLACK_CHANNEL="C-paste-the-channel-id-here"
 ```
 
+Or, for a zero-typing demo on one machine, put the same two lines in a
+repo-root `.env` file instead — the sender reads it automatically, real
+environment variables win over it, and `.env` is gitignored, so it is
+never committed or pushed:
+
+```bash
+cat > .env <<'EOF'
+SLACK_BOT_TOKEN=paste-the-bot-token-here
+SLACK_CHANNEL=C-paste-the-channel-id-here
+EOF
+```
+
 If a token was ever pasted into a chat log or a file, rotate it in the
 Slack app settings after the demo — a token in a log is a token to replace.
 
