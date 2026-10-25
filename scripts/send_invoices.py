@@ -23,7 +23,7 @@ def main():
     ap.add_argument("--delay", type=float, default=3.0, help="seconds between emails (for a live demo feel)")
     args = ap.parse_args()
 
-    vendors = json.loads((DATA / "reference" / "vendors.json").read_text())
+    vendors = json.loads((DATA / "companies" / "index.json").read_text())
     pdfs = sorted(Path(args.folder).glob("*.pdf"))
     if not pdfs:
         raise SystemExit(f"No PDFs in {args.folder}")

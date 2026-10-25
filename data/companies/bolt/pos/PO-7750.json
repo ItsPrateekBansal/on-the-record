@@ -1,0 +1,17 @@
+{
+  "po_number": "PO-7750",
+  "vendor_key": "bolt",
+  "vendor": "Bolt Industrial Supply LLC",
+  "date": "2026-10-23",
+  "buyer": "Harbor Ridge Manufacturing, Inc.",
+  "lines": [
+    {
+      "line": 1,
+      "sku": "BX-200",
+      "description": "Stainless anchor bolt M16 x 200 mm",
+      "qty": 500,
+      "unit": "unit",
+      "unit_price": 13.44
+    }
+  ]
+}

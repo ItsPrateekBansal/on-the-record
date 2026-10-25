@@ -1,0 +1,17 @@
+{
+  "po_number": "PO-7697",
+  "vendor_key": "evergreen",
+  "vendor": "Evergreen Parts Inc.",
+  "date": "2026-10-07",
+  "buyer": "Harbor Ridge Manufacturing, Inc.",
+  "lines": [
+    {
+      "line": 1,
+      "sku": "BR-6204",
+      "description": "Deep groove ball bearing 6204-2RS",
+      "qty": 4,
+      "unit": "unit",
+      "unit_price": 138.0
+    }
+  ]
+}

@@ -1,0 +1,17 @@
+{
+  "po_number": "PO-7768",
+  "vendor_key": "acme",
+  "vendor": "Acme Packaging Co.",
+  "date": "2026-10-22",
+  "buyer": "Harbor Ridge Manufacturing, Inc.",
+  "lines": [
+    {
+      "line": 1,
+      "sku": "AC-TAPE",
+      "description": "Packing tape roll, 2 in x 110 yd",
+      "qty": 200,
+      "unit": "roll",
+      "unit_price": 3.4
+    }
+  ]
+}

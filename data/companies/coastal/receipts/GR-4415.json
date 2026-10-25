@@ -1,0 +1,13 @@
+{
+  "receipt_id": "GR-4415",
+  "po_number": "PO-7764",
+  "vendor": "Coastal Supply Co.",
+  "date": "2026-10-21",
+  "lines": [
+    {
+      "sku": "CS-CRT",
+      "qty_received": 200,
+      "unit": "unit"
+    }
+  ]
+}

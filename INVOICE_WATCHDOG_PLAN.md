@@ -54,40 +54,47 @@ We **do** have PO, receipt and invoice data, so the transaction layer is genuine
 
 ## Part 2: How an audit works
 
-### 2.1 Two layers, three outcomes
+### 2.1 Three layers, three outcomes
 
-Every invoice goes through two layers. Each check returns **PASS**, **FAIL** or **NEEDS_REVIEW**.
+Every invoice goes through three layers. Each check returns **PASS**, **FAIL** or **NEEDS_REVIEW**.
 
 | Layer | Checks | Source |
 | --- | --- | --- |
-| A. Transaction | `po_price`, `po_quantity`, `receipt_quantity` | `reference/pos/`, `reference/receipts/` |
-| B. Commercial | `contract_price` (with volume tiers and unit conversion) | `reference/contracts/` |
+| A. Transaction | `po_price`, `po_quantity`, `receipt_quantity`, counting what earlier invoices on the same PO already billed | `companies/<vendor>/pos/`, `receipts/`, `transactions/` |
+| B. Commercial | `contract_price` (with volume tiers and unit conversion) | `companies/<vendor>/contract.txt` |
+| C. Historical | `duplicate`: same vendor, same PO and same amount as a previous transaction | `companies/<vendor>/transactions/` |
 
 **Invoice status:** FAIL if any check fails; otherwise NEEDS_REVIEW if any check could not be decided; otherwise PASS.
 
 **Amount at risk** (one formula, no double counting):
 
-- Invoice total − payable, where payable = Σ min(billed qty, PO qty, received qty) × min(billed price, contract price), all in contract units.
+- Duplicate: the whole invoice total.
+- Otherwise: invoice total − payable, where payable = Σ min(billed qty, PO qty left, received qty left) × min(billed price, contract price), in contract units. "Left" means minus what previous transactions on the same PO already billed.
 - NEEDS_REVIEW: $0 at risk; the invoice total is shown as "under review."
 
 **NEEDS_REVIEW is a feature.** If the contract doesn't define a unit the invoice uses (for example "carton"), the system must not guess. It says so and hands the invoice to a person.
 
 ### 2.2 The agent investigates (no one uploads documents)
 
-When an invoice arrives, the agent gathers its own evidence:
+When an invoice arrives, the agent gathers its own evidence. This is the team's pipeline:
 
 ```
-New invoice in data/inbox/
-  → extract supplier, invoice number, PO number, SKUs, quantities, units, prices   (local model)
-  → find the PO:        reference/pos/<PO>.json
-  → find the receipt:   reference/receipts/ (match on po_number)
-  → find the contract:  reference/contracts/index.json → vendor → contract file and SKU clause
-  → find the clause:    plain text search in <vendor>_contract.txt, then the model picks from the found lines
-  → extract commercial terms from the clause   (local model → Pydantic)
-  → run the deterministic checks               (Python)
-  → write the evidence package + audit log entry
-  → Slack alert (short), dashboard (full evidence)
+1. Email watcher        Mailpit → fetcher → data/inbox/            (watcher/inbox.py: done)
+2. Parser               JSON today (parser/invoice_parser.py: done) → PDF later via the local model
+3. Load the company     companies/index.json → companies/<vendor>/
+4. Load the contract    the WHOLE contract.txt (about 1 page) into the local model,
+                        which extracts the terms for each SKU as JSON → Pydantic
+5. Validate PO + GR     companies/<vendor>/pos/<PO>.json, receipts/ (match on po_number)
+6. Load history         companies/<vendor>/transactions/: earlier invoices on the same PO
+                        (PO already partly billed) and duplicates
+7. Validate contract    price, volume tier, units per box, against the extracted clauses   (Python)
+8. Note the transaction save the invoice + verdict into companies/<vendor>/transactions/
+9. Report               results/success/, results/discrepancy/ or results/needs_review/
+                        + audit log entry + short Slack alert
+10. Dashboard           evidence screen reads results/
 ```
+
+**Order matters in steps 6 and 8:** load the history *before* saving the new invoice into `transactions/`. Otherwise the invoice matches itself as a duplicate.
 
 ### 2.3 The trust chain
 
@@ -109,17 +116,19 @@ AI interprets → Pydantic validates → Python decides → AI explains → huma
 
 Regenerate any time with `.venv/bin/python scripts/make_fake_data.py`. The script recomputes every expected result from the POs, receipts and contracts, and stops if its own answer key disagrees.
 
-### 3.1 Live demo (3 invoices, sent by email during the pitch)
+### 3.1 Live demo (5 invoices, sent by email during the pitch)
 
-| # | Supplier | Scenario | Transaction | Contract | At risk | Shows |
-| --- | --- | --- | --- | --- | --- | --- |
-| 1 | **Bolt Industrial** | 500 × $13.44. **PO-7750 also says $13.44.** Contract 3.1 says $12.00 | PASS | **FAIL** | **$720** | **The differentiator:** PO match passes, contract fails |
-| 2 | Coastal Supply | Billed 100 pallets; PO-7781 ordered 80; receipt GR-4432 received 80 | **FAIL** | PASS | $1,200 | Ordinary matching, as a baseline |
-| 3 | Delta Office | Everything correct | PASS | PASS | $0 | Clean invoices pass |
+| # | Supplier | Scenario | Transaction | Contract | History | At risk | Shows |
+| --- | --- | --- | --- | --- | --- | --- | --- |
+| 1 | **Bolt Industrial** | 500 × $13.44. **PO-7750 also says $13.44.** Contract 3.1 says $12.00 | PASS | **FAIL** | PASS | **$720** | **The differentiator:** PO match passes, contract fails |
+| 2 | Coastal Supply | Billed 100 pallets; PO-7781 ordered 80; receipt GR-4432 received 80 | **FAIL** | PASS | PASS | $1,200 | Ordinary matching, as a baseline |
+| 3 | Acme Packaging | INV-1047 bills 1,100 boxes on PO-7701 (2,000 ordered). Previous transaction INV-1043 already billed 1,200 | **FAIL** | PASS | PASS | $360 | Previous transactions: each invoice alone looks fine |
+| 4 | Delta Office | INV-D-3301, everything correct | PASS | PASS | PASS | $0 | Clean invoices pass |
+| 5 | Delta Office | INV-D-3270A: same PO and $902 as previous transaction INV-D-3270, already paid | FAIL | PASS | **FAIL** | $902 | Duplicate |
 
-**Live total: 2 failed, $1,920 at risk.** Files are numbered so Bolt arrives first.
+**Live total: 4 failed, $3,182 at risk.** Files are numbered so Bolt arrives first.
 
-**Duplicates are out of scope.** ERPs already check them, and they aren't our story. There is no paid-invoice history in the data.
+Acme and the Delta duplicate need the **previous transactions** in `companies/<vendor>/transactions/`. ERPs can catch these too, so they are baseline checks, not the story.
 
 ### 3.2 Wifi-off demo (1 invoice)
 
@@ -144,19 +153,22 @@ Bolt shows **contract price retrieval**. Evergreen shows **semantic interpretati
 
 ```
 data/
-├── demo/live/                01_bolt, 02_coastal, 03_delta (PDF + JSON)
-├── demo/wifi_off/            05_evergreen_INV-EV-208.pdf
-├── demo/overnight/           o01 … o14 (PDF)
-├── reference/pos/            PO-*.json        (25 POs)
-├── reference/receipts/       GR-*.json        (one per PO; GR-4432 = Coastal)
-├── reference/contracts/      <vendor>_contract.pdf/.txt + index.json (vendor → file, dates, SKU → clause)
-├── reference/vendors.json
-├── expected_results.json     the answer key (status, layers, at_risk, evidence, clause text)
-├── inbox/                    new invoices land here
-└── outbox/                   ONLY human-approved disputes
+├── companies/index.json          vendor → name, email, folder, contract dates, SKU → clause
+├── companies/<vendor>/
+│   ├── contract.pdf / contract.txt
+│   ├── pos/PO-*.json
+│   ├── receipts/GR-*.json        one per PO (GR-4432 = Coastal)
+│   └── transactions/INV-*.json   previous invoices (6 to start); every audited invoice is added here
+├── demo/live/                    01_bolt … 05_delta (PDF + JSON)
+├── demo/wifi_off/                05_evergreen_INV-EV-208 (PDF + JSON)
+├── demo/overnight/               o01 … o14 (PDF + JSON)
+├── expected_results.json         the answer key (status, layers, at_risk, result folder, evidence, clause text)
+├── inbox/                        new invoices land here
+├── results/success/ · results/discrepancy/ · results/needs_review/
+└── outbox/                       ONLY human-approved disputes
 ```
 
-**Optional switch:** in `make_fake_data.py`, set Coastal's receipt to 75 (`RECEIPT_OVERRIDES`) to show "ordered 80, received 75, billed 100." Its amount becomes $1,500 and the live total $2,220. Update its `expect` line too. Only do this if the receipt layer is built.
+**Optional switch:** in `make_fake_data.py`, set Coastal's receipt to 75 (`RECEIPT_OVERRIDES`) to show "ordered 80, received 75, billed 100." Its amount becomes $1,500 and the live total $3,482. Update its `expect` line too. Only do this if the receipt layer is built.
 
 ---
 
@@ -175,22 +187,24 @@ data/
                        │ skill audit-invoices → python -m watchdog scan
                        ▼
             AUTONOMOUS INVESTIGATION
-              ┌────────┴────────┐
-              ▼                 ▼
-         PO + RECEIPT       CONTRACT
-              └────────┬────────┘
+          ┌────────────┼────────────┐
+          ▼            ▼            ▼
+     PO + RECEIPT   CONTRACT    PREVIOUS
+                                TRANSACTIONS
+          └────────────┼────────────┘
                        ▼
                LOCAL MODEL (GB10)  extract facts
                        ▼
                  PYDANTIC GATE
                        ▼
               DETERMINISTIC PYTHON
-              ┌────────┴────────┐
-              ▼                 ▼
-         Transaction       Commercial
-              └────────┬────────┘
+        ┌──────────────┼──────────────┐
+        ▼              ▼              ▼
+   Transaction     Commercial      Historical
+        └──────────────┼──────────────┘
                        ▼
-        EVIDENCE PACKAGE + HASH-CHAINED LOG (SQLite)
+   results/success | discrepancy | needs_review
+   + transactions/ + HASH-CHAINED LOG (SQLite)
              ┌─────────┴─────────┐
              ▼                   ▼
       SLACK (short alert)   STREAMLIT (evidence + draft)
@@ -211,20 +225,20 @@ data/
 
 **Privacy rule:** Slack gets only supplier, amount and problem type. Contract prices, clause text and dispute drafts stay on the local dashboard.
 
-**Don't add:** Kafka, Kubernetes, vector databases, multiple agents, cloud services, RAG frameworks. With five contracts, `index.json` plus plain text search is enough. The sophistication is in the workflow, not the number of tools.
+**Don't add:** Kafka, Kubernetes, vector databases, multiple agents, cloud services, RAG frameworks. With five one-page contracts, the whole contract fits in the model's context. The sophistication is in the workflow, not the number of tools.
 
 **Repo layout (`on-the-record`):**
 
 ```
 watcher/inbox.py          done: watches data/inbox/, dispatches stable .json files
 parser/invoice_parser.py  done: validates invoices; Line.unit carries "box (12)", "carton"
-engine/                   B: retrieval + the two layers (port audit() from scripts/make_fake_data.py)
+engine/                   B: retrieval + the three layers (port audit() from scripts/make_fake_data.py)
 drafter/                  B: explanation + dispute draft (local model)
 dashboard/app.py          C: evidence screen, Approve, Verify
 audit/                    C: hash-chained log
 skills/                   A: audit-invoices, daily-summary (SKILL.md)
 scripts/                  make_fake_data.py, send_invoices.py
-data/                     demo invoices (PDF + JSON twin), reference/, expected_results.json
+data/                     companies/<vendor>/ (contract, POs, receipts, transactions), demo/, results/, expected_results.json
 ```
 
 The watcher reads `.json` today. Until PDF extraction with the local model works, drop the JSON twins from `data/demo/` into `data/inbox/`; the rest of the pipeline is the same.
@@ -236,7 +250,7 @@ The watcher reads `.json` today. Until PDF extraction with the local model works
 | Person | Role | Owns |
 | --- | --- | --- |
 | **A** | Platform + security | NemoClaw/OpenClaw/OpenShell install, Ollama, Slack, network policy, heartbeat, `audit-invoices` and `daily-summary` skills, Mailpit + `watchdog fetch`, **blocked-egress demo**, **wifi-off run** |
-| **B** | Brain | `watchdog scan`: extraction (model → Pydantic + 1 retry), evidence retrieval (PO, receipt, contract clause), the two layers of checks, unit conversion, NEEDS_REVIEW path, explanations and dispute drafts, `watchdog selftest` |
+| **B** | Brain | `watchdog scan`: extraction (model → Pydantic + 1 retry), evidence retrieval (PO, receipt, contract, previous transactions), the three layers of checks, writing to `results/` and `transactions/`, unit conversion, NEEDS_REVIEW path, explanations and dispute drafts, `watchdog selftest` |
 | **C** | Screens + story | Streamlit evidence screen, Approve button, hash-chained audit log + Verify, morning summary numbers, then **pitch, demo script, backup video, README, submission** |
 
 **Already done (no one needs to build these):** the fake data set, the answer key, and `scripts/send_invoices.py` (emails PDFs into Mailpit).
@@ -381,7 +395,7 @@ Plumbing:
 | Time | A (Platform) | B (Brain) | C (Screens + story) | Checkpoint |
 | --- | --- | --- | --- | --- |
 | 10:00–11:00 | NemoClaw + Slack, policy, Mailpit | Model preflight | SQLite tables, dashboard shell reading `expected_results.json` | Model chosen, bot says hi |
-| 11:00–13:00 | `watchdog fetch`, skill runs `scan`, Slack alert | Extraction + Pydantic, retrieval, 2 layers, `selftest` | Evidence screen for Bolt, audit log | `selftest` on the 3 live invoices: Bolt contract FAIL with PO PASS, $1,920 total |
+| 11:00–13:00 | `watchdog fetch`, skill runs `scan`, Slack alert | Extraction + Pydantic, retrieval, 3 layers, `selftest` | Evidence screen for Bolt, audit log | `selftest` on the 5 live invoices: Bolt contract FAIL with PO PASS, $3,182 total |
 | 13:00–15:00 | Blocked-egress demo | NEEDS_REVIEW path, dispute drafts | Approve → outbox, Verify button, review card | Layer 1 end to end |
 | 15:00–16:30 | Heartbeat, `daily-summary` skill | Evergreen boxes, overnight selftest (14) | Pitch + demo script, first full practice | Email → Slack alert with nobody typing; summary "2 failed, $1,280, 1 review" |
 | 16:30–17:00 | Wifi-off run | Bug fixes | Backup video recording | Evergreen caught at $120 with wifi off |
@@ -397,9 +411,9 @@ If something blocks you for more than 30 minutes, ask a mentor right away.
 
 1. **Problem (15 s):** "Companies pay thousands of invoices. Their ERP checks that the invoice matches the PO. Nobody checks that the PO matches the contract."
 2. **Overnight (15 s):** the morning Slack summary: "Audited 14 invoices overnight. 2 failed, $1,280 at risk. 1 needs human review." Nobody asked it to.
-3. **Live (30 s):** email the 3 live invoices to Mailpit. The agent picks them up by itself. Two alerts appear; the clean one passes.
+3. **Live (30 s):** email the 5 live invoices to Mailpit. The agent picks them up by itself. Four alerts appear; the clean one passes.
 4. **The wow, Bolt (50 s):** open the evidence screen. "The invoice matches the PO perfectly: PASS. But Watchdog checks the agreement behind the transaction." Contract FAIL, clause 3.1 quoted, $720.
-5. **Baseline (5 s):** point at the Coastal alert ($1,200, over-billed): "Watchdog runs the standard checks too, so it can replace a manual audit, not just add one more tool." Don't open it; ERPs catch this, so it is not the story. If a judge says "my ERP does that": "Right, we don't compete with that. Our point is the invoice your ERP approves, like Bolt."
+5. **Baseline (5 s):** point at the Coastal ($1,200), Acme ($360) and Delta duplicate ($902) alerts: "Watchdog runs the standard checks too, so it can replace a manual audit, not just add one more tool." Don't open them; ERPs can catch these, so they are not the story. If a judge says "my ERP does that": "Right, we don't compete with that. Our point is the invoice your ERP approves, like Bolt."
 6. **Honest uncertainty (10 s):** the carton invoice: "The contract doesn't define a carton, so it asks a person instead of guessing."
 7. **Human approval (15 s):** "AI investigates. Code verifies. Humans authorize." Click Approve; the dispute moves to the outbox, ready to send. The agent sent nothing.
 8. **Cannot leak (20 s):** in Slack, ask the agent to upload the invoice to a public site. OpenShell blocks it.
@@ -449,7 +463,7 @@ If something blocks you for more than 30 minutes, ask a mentor right away.
 | Skill can't reach the shared folder | Plan B from Part 4 (local web service allowed in policy). |
 | Strict JSON `format` fails | Prompt + Pydantic + 1 retry. Still bad → NEEDS_REVIEW, never crash. |
 | Model invents a carton size | Python only accepts conversions found in the clause text; otherwise NEEDS_REVIEW. |
-| Clause not quoted word for word | Find the clause by text search first, then let the model pick from the found lines. |
+| Clause not quoted word for word | Python checks the quoted text appears in contract.txt; if not, find the clause by its number. |
 | Model too slow | Faster model from preflight. |
 | Mailpit fetch breaks | Drop PDFs straight into `data/inbox/`; the agent still picks them up. |
 | Heartbeat unreliable | Trigger the skill from Slack ("check inbox") for the live part. |

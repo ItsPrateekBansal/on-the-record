@@ -1,0 +1,13 @@
+{
+  "receipt_id": "GR-4406",
+  "po_number": "PO-7697",
+  "vendor": "Evergreen Parts Inc.",
+  "date": "2026-10-07",
+  "lines": [
+    {
+      "sku": "BR-6204",
+      "qty_received": 4,
+      "unit": "unit"
+    }
+  ]
+}

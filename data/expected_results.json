@@ -1,11 +1,11 @@
 {
   "summary": {
     "live": {
-      "invoices": 3,
+      "invoices": 5,
       "pass": 1,
-      "fail": 2,
+      "fail": 4,
       "needs_review": 0,
-      "at_risk": 1920.0,
+      "at_risk": 3182.0,
       "under_review": 0.0
     },
     "wifi_off": {
@@ -52,12 +52,21 @@
           "checks": {
             "contract_price": "FAIL"
           }
+        },
+        "historical": {
+          "status": "PASS",
+          "checks": {
+            "duplicate": "PASS"
+          },
+          "matched_transaction": null
         }
       },
+      "result_folder": "results/discrepancy",
       "evidence": {
-        "po": "PO-7750",
-        "receipt": "GR-4401",
-        "contract": "reference/contracts/bolt_contract.pdf",
+        "po": "companies/bolt/pos/PO-7750.json",
+        "receipt": "companies/bolt/receipts/GR-4407.json",
+        "previous_transactions": [],
+        "contract": "companies/bolt/contract.pdf",
         "clauses": {
           "3.1": "Unit price for SKU BX-200 shall be $12.00 per unit, fixed through Dec 31, 2026."
         }
@@ -90,12 +99,21 @@
           "checks": {
             "contract_price": "PASS"
           }
+        },
+        "historical": {
+          "status": "PASS",
+          "checks": {
+            "duplicate": "PASS"
+          },
+          "matched_transaction": null
         }
       },
+      "result_folder": "results/discrepancy",
       "evidence": {
-        "po": "PO-7781",
-        "receipt": "GR-4432",
-        "contract": "reference/contracts/coastal_contract.pdf",
+        "po": "companies/coastal/pos/PO-7781.json",
+        "receipt": "companies/coastal/receipts/GR-4432.json",
+        "previous_transactions": [],
+        "contract": "companies/coastal/contract.pdf",
         "clauses": {
           "4.1": "Heavy-duty wooden pallets 48x40 (SKU CS-PAL) are priced at sixty dollars ($60.00) each.",
           "2.1": "Supplier shall ship only the quantities stated on Buyer's purchase order. Goods shipped in excess of the purchase order quantity will not be paid for."
@@ -105,7 +123,108 @@
     },
     {
       "set": "live",
-      "file": "03_delta_INV-D-3301.pdf",
+      "file": "03_acme_INV-1047.pdf",
+      "vendor": "Acme Packaging Co.",
+      "invoice": "INV-1047",
+      "date": "2026-10-23",
+      "po": "PO-7701",
+      "total": 1320.0,
+      "status": "FAIL",
+      "main_check": "po_quantity",
+      "at_risk": 360.0,
+      "amount_under_review": 0.0,
+      "layers": {
+        "transaction": {
+          "status": "FAIL",
+          "checks": {
+            "po_price": "PASS",
+            "po_quantity": "FAIL",
+            "receipt_quantity": "FAIL"
+          }
+        },
+        "commercial": {
+          "status": "PASS",
+          "checks": {
+            "contract_price": "PASS"
+          }
+        },
+        "historical": {
+          "status": "PASS",
+          "checks": {
+            "duplicate": "PASS"
+          },
+          "matched_transaction": null
+        }
+      },
+      "result_folder": "results/discrepancy",
+      "evidence": {
+        "po": "companies/acme/pos/PO-7701.json",
+        "receipt": "companies/acme/receipts/GR-4401.json",
+        "previous_transactions": [
+          "companies/acme/transactions/INV-1043.json"
+        ],
+        "contract": "companies/acme/contract.pdf",
+        "clauses": {
+          "2.1": "The unit price for SKU AC-1212 (corrugated shipping box 12x12x8) shall be $1.20 per unit."
+        }
+      },
+      "proof": "PO-7701 ordered 2,000 boxes. Previous transaction INV-1043 already billed 1,200, so only 800 remain. This invoice bills 1,100: 300 x $1.20 = $360.00 over the PO. Each invoice alone looks fine; only the history shows it."
+    },
+    {
+      "set": "live",
+      "file": "05_delta_INV-D-3270A.pdf",
+      "vendor": "Delta Office Solutions",
+      "invoice": "INV-D-3270A",
+      "date": "2026-10-22",
+      "po": "PO-7695",
+      "total": 902.0,
+      "status": "FAIL",
+      "main_check": "duplicate",
+      "at_risk": 902.0,
+      "amount_under_review": 0.0,
+      "layers": {
+        "transaction": {
+          "status": "FAIL",
+          "checks": {
+            "po_price": "PASS",
+            "po_quantity": "FAIL",
+            "receipt_quantity": "FAIL"
+          }
+        },
+        "commercial": {
+          "status": "PASS",
+          "checks": {
+            "contract_price": "PASS"
+          }
+        },
+        "historical": {
+          "status": "FAIL",
+          "checks": {
+            "duplicate": "FAIL"
+          },
+          "matched_transaction": "INV-D-3270"
+        }
+      },
+      "result_folder": "results/discrepancy",
+      "evidence": {
+        "po": "companies/delta/pos/PO-7695.json",
+        "receipt": "companies/delta/receipts/GR-4405.json",
+        "previous_transactions": [
+          "companies/delta/transactions/INV-D-3270.json"
+        ],
+        "contract": "companies/delta/contract.pdf",
+        "clauses": {
+          "1.1": "This Master Supply Agreement (the \"Agreement\") governs all purchases by Buyer from Supplier between January 1, 2026 and December 31, 2026.",
+          "1.2": "Each purchase is made by a written purchase order (\"PO\") issued by Buyer. Supplier shall reference the PO number on every invoice.",
+          "1.3": "Ballpoint pens (SKU DO-PEN) are $9.50 per box of 50.",
+          "8.2": "Supplier shall issue one invoice per shipment and shall not invoice the same goods more than once. A re-issued invoice must clearly state that it replaces an earlier invoice."
+        }
+      },
+      "proof": "Same vendor, same PO-7695 and same $902.00 as previous transaction INV-D-3270, already paid on 2026-10-16; the number differs only by a trailing 'A'. Contract 8.2: no invoicing the same goods twice."
+    },
+    {
+      "set": "live",
+      "file": "04_delta_INV-D-3301.pdf",
       "vendor": "Delta Office Solutions",
       "invoice": "INV-D-3301",
       "date": "2026-10-24",
@@ -129,12 +248,21 @@
           "checks": {
             "contract_price": "PASS"
           }
+        },
+        "historical": {
+          "status": "PASS",
+          "checks": {
+            "duplicate": "PASS"
+          },
+          "matched_transaction": null
         }
       },
+      "result_folder": "results/success",
       "evidence": {
-        "po": "PO-7790",
-        "receipt": "GR-4403",
-        "contract": "reference/contracts/delta_contract.pdf",
+        "po": "companies/delta/pos/PO-7790.json",
+        "receipt": "companies/delta/receipts/GR-4409.json",
+        "previous_transactions": [],
+        "contract": "companies/delta/contract.pdf",
         "clauses": {
           "1.1": "This Master Supply Agreement (the \"Agreement\") governs all purchases by Buyer from Supplier between January 1, 2026 and December 31, 2026.",
           "1.2": "Each purchase is made by a written purchase order (\"PO\") issued by Buyer. Supplier shall reference the PO number on every invoice."
@@ -168,12 +296,21 @@
           "checks": {
             "contract_price": "FAIL"
           }
+        },
+        "historical": {
+          "status": "PASS",
+          "checks": {
+            "duplicate": "PASS"
+          },
+          "matched_transaction": null
         }
       },
+      "result_folder": "results/discrepancy",
       "evidence": {
-        "po": "PO-7802",
-        "receipt": "GR-4404",
-        "contract": "reference/contracts/evergreen_contract.pdf",
+        "po": "companies/evergreen/pos/PO-7802.json",
+        "receipt": "companies/evergreen/receipts/GR-4410.json",
+        "previous_transactions": [],
+        "contract": "companies/evergreen/contract.pdf",
         "clauses": {
           "2.4": "Deep groove ball bearings 6204-2RS (SKU BR-6204) are priced at $11.50 per unit. Bearings are packed and invoiced in boxes of 12 units; the price per box therefore shall not exceed twelve times the unit price."
         }
@@ -206,12 +343,21 @@
           "checks": {
             "contract_price": "PASS"
           }
+        },
+        "historical": {
+          "status": "PASS",
+          "checks": {
+            "duplicate": "PASS"
+          },
+          "matched_transaction": null
         }
       },
+      "result_folder": "results/success",
       "evidence": {
-        "po": "PO-7760",
-        "receipt": "GR-4405",
-        "contract": "reference/contracts/acme_contract.pdf",
+        "po": "companies/acme/pos/PO-7760.json",
+        "receipt": "companies/acme/receipts/GR-4411.json",
+        "previous_transactions": [],
+        "contract": "companies/acme/contract.pdf",
         "clauses": {
           "2.1": "The unit price for SKU AC-1212 (corrugated shipping box 12x12x8) shall be $1.20 per unit.",
           "2.3": "The unit price for SKU AC-WRAP (stretch wrap roll) shall be $18.75 per roll."
@@ -245,12 +391,21 @@
           "checks": {
             "contract_price": "PASS"
           }
+        },
+        "historical": {
+          "status": "PASS",
+          "checks": {
+            "duplicate": "PASS"
+          },
+          "matched_transaction": null
         }
       },
+      "result_folder": "results/success",
       "evidence": {
-        "po": "PO-7761",
-        "receipt": "GR-4406",
-        "contract": "reference/contracts/bolt_contract.pdf",
+        "po": "companies/bolt/pos/PO-7761.json",
+        "receipt": "companies/bolt/receipts/GR-4412.json",
+        "previous_transactions": [],
+        "contract": "companies/bolt/contract.pdf",
         "clauses": {
           "3.3": "Unit price for SKU NT-080 shall be $2.40 per unit.",
           "3.4": "Unit price for SKU WS-016 shall be $0.85 per unit."
@@ -284,12 +439,21 @@
           "checks": {
             "contract_price": "PASS"
           }
+        },
+        "historical": {
+          "status": "PASS",
+          "checks": {
+            "duplicate": "PASS"
+          },
+          "matched_transaction": null
         }
       },
+      "result_folder": "results/success",
       "evidence": {
-        "po": "PO-7762",
-        "receipt": "GR-4407",
-        "contract": "reference/contracts/delta_contract.pdf",
+        "po": "companies/delta/pos/PO-7762.json",
+        "receipt": "companies/delta/receipts/GR-4413.json",
+        "previous_transactions": [],
+        "contract": "companies/delta/contract.pdf",
         "clauses": {
           "1.3": "Ballpoint pens (SKU DO-PEN) are $9.50 per box of 50.",
           "1.1": "This Master Supply Agreement (the \"Agreement\") governs all purchases by Buyer from Supplier between January 1, 2026 and December 31, 2026."
@@ -323,12 +487,21 @@
           "checks": {
             "contract_price": "NEEDS_REVIEW"
           }
+        },
+        "historical": {
+          "status": "PASS",
+          "checks": {
+            "duplicate": "PASS"
+          },
+          "matched_transaction": null
         }
       },
+      "result_folder": "results/needs_review",
       "evidence": {
-        "po": "PO-7763",
-        "receipt": "GR-4408",
-        "contract": "reference/contracts/evergreen_contract.pdf",
+        "po": "companies/evergreen/pos/PO-7763.json",
+        "receipt": "companies/evergreen/receipts/GR-4414.json",
+        "previous_transactions": [],
+        "contract": "companies/evergreen/contract.pdf",
         "clauses": {
           "2.2": "Lithium grease tubes, 500 g (SKU GR-500), are priced at $7.80 per tube."
         }
@@ -361,12 +534,21 @@
           "checks": {
             "contract_price": "PASS"
           }
+        },
+        "historical": {
+          "status": "PASS",
+          "checks": {
+            "duplicate": "PASS"
+          },
+          "matched_transaction": null
         }
       },
+      "result_folder": "results/success",
       "evidence": {
-        "po": "PO-7764",
-        "receipt": "GR-4409",
-        "contract": "reference/contracts/coastal_contract.pdf",
+        "po": "companies/coastal/pos/PO-7764.json",
+        "receipt": "companies/coastal/receipts/GR-4415.json",
+        "previous_transactions": [],
+        "contract": "companies/coastal/contract.pdf",
         "clauses": {
           "4.2": "Stackable plastic crates, 60 L (SKU CS-CRT) are priced at twenty-two dollars and fifty cents ($22.50) each."
         }
@@ -399,12 +581,21 @@
           "checks": {
             "contract_price": "FAIL"
           }
+        },
+        "historical": {
+          "status": "PASS",
+          "checks": {
+            "duplicate": "PASS"
+          },
+          "matched_transaction": null
         }
       },
+      "result_folder": "results/discrepancy",
       "evidence": {
-        "po": "PO-7765",
-        "receipt": "GR-4410",
-        "contract": "reference/contracts/coastal_contract.pdf",
+        "po": "companies/coastal/pos/PO-7765.json",
+        "receipt": "companies/coastal/receipts/GR-4416.json",
+        "previous_transactions": [],
+        "contract": "companies/coastal/contract.pdf",
         "clauses": {
           "4.1": "Heavy-duty wooden pallets 48x40 (SKU CS-PAL) are priced at sixty dollars ($60.00) each."
         }
@@ -437,12 +628,21 @@
           "checks": {
             "contract_price": "PASS"
           }
+        },
+        "historical": {
+          "status": "PASS",
+          "checks": {
+            "duplicate": "PASS"
+          },
+          "matched_transaction": null
         }
       },
+      "result_folder": "results/success",
       "evidence": {
-        "po": "PO-7766",
-        "receipt": "GR-4411",
-        "contract": "reference/contracts/bolt_contract.pdf",
+        "po": "companies/bolt/pos/PO-7766.json",
+        "receipt": "companies/bolt/receipts/GR-4417.json",
+        "previous_transactions": [],
+        "contract": "companies/bolt/contract.pdf",
         "clauses": {
           "3.1": "Unit price for SKU BX-200 shall be $12.00 per unit, fixed through Dec 31, 2026."
         }
@@ -475,12 +675,21 @@
           "checks": {
             "contract_price": "PASS"
           }
+        },
+        "historical": {
+          "status": "PASS",
+          "checks": {
+            "duplicate": "PASS"
+          },
+          "matched_transaction": null
         }
       },
+      "result_folder": "results/success",
       "evidence": {
-        "po": "PO-7767",
-        "receipt": "GR-4412",
-        "contract": "reference/contracts/evergreen_contract.pdf",
+        "po": "companies/evergreen/pos/PO-7767.json",
+        "receipt": "companies/evergreen/receipts/GR-4418.json",
+        "previous_transactions": [],
+        "contract": "companies/evergreen/contract.pdf",
         "clauses": {
           "2.4": "Deep groove ball bearings 6204-2RS (SKU BR-6204) are priced at $11.50 per unit. Bearings are packed and invoiced in boxes of 12 units; the price per box therefore shall not exceed twelve times the unit price."
         }
@@ -513,12 +722,21 @@
           "checks": {
             "contract_price": "PASS"
           }
+        },
+        "historical": {
+          "status": "PASS",
+          "checks": {
+            "duplicate": "PASS"
+          },
+          "matched_transaction": null
         }
       },
+      "result_folder": "results/discrepancy",
       "evidence": {
-        "po": "PO-7768",
-        "receipt": "GR-4413",
-        "contract": "reference/contracts/acme_contract.pdf",
+        "po": "companies/acme/pos/PO-7768.json",
+        "receipt": "companies/acme/receipts/GR-4419.json",
+        "previous_transactions": [],
+        "contract": "companies/acme/contract.pdf",
         "clauses": {
           "2.2": "The unit price for SKU AC-TAPE (packing tape roll) shall be $3.40 per roll."
         }
@@ -551,12 +769,21 @@
           "checks": {
             "contract_price": "PASS"
           }
+        },
+        "historical": {
+          "status": "PASS",
+          "checks": {
+            "duplicate": "PASS"
+          },
+          "matched_transaction": null
         }
       },
+      "result_folder": "results/success",
       "evidence": {
-        "po": "PO-7769",
-        "receipt": "GR-4414",
-        "contract": "reference/contracts/delta_contract.pdf",
+        "po": "companies/delta/pos/PO-7769.json",
+        "receipt": "companies/delta/receipts/GR-4420.json",
+        "previous_transactions": [],
+        "contract": "companies/delta/contract.pdf",
         "clauses": {
           "1.2": "Each purchase is made by a written purchase order (\"PO\") issued by Buyer. Supplier shall reference the PO number on every invoice."
         }
@@ -589,12 +816,21 @@
           "checks": {
             "contract_price": "PASS"
           }
+        },
+        "historical": {
+          "status": "PASS",
+          "checks": {
+            "duplicate": "PASS"
+          },
+          "matched_transaction": null
         }
       },
+      "result_folder": "results/success",
       "evidence": {
-        "po": "PO-7770",
-        "receipt": "GR-4415",
-        "contract": "reference/contracts/acme_contract.pdf",
+        "po": "companies/acme/pos/PO-7770.json",
+        "receipt": "companies/acme/receipts/GR-4421.json",
+        "previous_transactions": [],
+        "contract": "companies/acme/contract.pdf",
         "clauses": {
           "2.3": "The unit price for SKU AC-WRAP (stretch wrap roll) shall be $18.75 per roll."
         }
@@ -627,12 +863,21 @@
           "checks": {
             "contract_price": "PASS"
           }
+        },
+        "historical": {
+          "status": "PASS",
+          "checks": {
+            "duplicate": "PASS"
+          },
+          "matched_transaction": null
         }
       },
+      "result_folder": "results/success",
       "evidence": {
-        "po": "PO-7771",
-        "receipt": "GR-4416",
-        "contract": "reference/contracts/coastal_contract.pdf",
+        "po": "companies/coastal/pos/PO-7771.json",
+        "receipt": "companies/coastal/receipts/GR-4422.json",
+        "previous_transactions": [],
+        "contract": "companies/coastal/contract.pdf",
         "clauses": {
           "4.1": "Heavy-duty wooden pallets 48x40 (SKU CS-PAL) are priced at sixty dollars ($60.00) each."
         }
@@ -665,12 +910,21 @@
           "checks": {
             "contract_price": "PASS"
           }
+        },
+        "historical": {
+          "status": "PASS",
+          "checks": {
+            "duplicate": "PASS"
+          },
+          "matched_transaction": null
         }
       },
+      "result_folder": "results/success",
       "evidence": {
-        "po": "PO-7772",
-        "receipt": "GR-4417",
-        "contract": "reference/contracts/bolt_contract.pdf",
+        "po": "companies/bolt/pos/PO-7772.json",
+        "receipt": "companies/bolt/receipts/GR-4423.json",
+        "previous_transactions": [],
+        "contract": "companies/bolt/contract.pdf",
         "clauses": {
           "3.4": "Unit price for SKU WS-016 shall be $0.85 per unit.",
           "3.3": "Unit price for SKU NT-080 shall be $2.40 per unit."
@@ -704,12 +958,21 @@
           "checks": {
             "contract_price": "PASS"
           }
+        },
+        "historical": {
+          "status": "PASS",
+          "checks": {
+            "duplicate": "PASS"
+          },
+          "matched_transaction": null
         }
       },
+      "result_folder": "results/success",
       "evidence": {
-        "po": "PO-7773",
-        "receipt": "GR-4418",
-        "contract": "reference/contracts/delta_contract.pdf",
+        "po": "companies/delta/pos/PO-7773.json",
+        "receipt": "companies/delta/receipts/GR-4424.json",
+        "previous_transactions": [],
+        "contract": "companies/delta/contract.pdf",
         "clauses": {
           "1.1": "This Master Supply Agreement (the \"Agreement\") governs all purchases by Buyer from Supplier between January 1, 2026 and December 31, 2026."
         }

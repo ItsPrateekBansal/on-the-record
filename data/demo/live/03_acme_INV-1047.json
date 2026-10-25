@@ -1,0 +1,16 @@
+{
+  "invoice_number": "INV-1047",
+  "vendor": "Acme Packaging Co.",
+  "po_number": "PO-7701",
+  "date": "2026-10-23",
+  "total": 1320.0,
+  "lines": [
+    {
+      "sku": "AC-1212",
+      "description": "Corrugated shipping box 12x12x8",
+      "qty": 1100,
+      "unit": null,
+      "unit_price": 1.2
+    }
+  ]
+}
