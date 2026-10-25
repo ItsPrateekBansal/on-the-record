@@ -97,15 +97,15 @@ VENDORS = {
         "email": "billing@deltaoffice.local",
         "style": "A",
         "catalog": {
-            "DO-PPR": ("Copy paper, letter, case of 10 reams", "case", 45.00, "1.1"),
-            "DO-TNR": ("Toner cartridge, black, high yield", "unit", 85.00, "1.2"),
-            "DO-PEN": ("Ballpoint pens, box of 50", "box", 9.50, "1.3"),
+            "DO-PPR": ("Copy paper, letter, case of 10 reams", "case", 45.00, "2.1"),
+            "DO-TNR": ("Toner cartridge, black, high yield", "unit", 85.00, "2.2"),
+            "DO-PEN": ("Ballpoint pens, box of 50", "box", 9.50, "2.3"),
         },
         "sections": [
-            ("1", "Pricing", [
-                ("1.1", "Copy paper (SKU DO-PPR) is $45.00 per case of ten reams."),
-                ("1.2", "Black high-yield toner cartridges (SKU DO-TNR) are $85.00 each."),
-                ("1.3", "Ballpoint pens (SKU DO-PEN) are $9.50 per box of 50."),
+            ("2", "Pricing", [
+                ("2.1", "Copy paper (SKU DO-PPR) is $45.00 per case of ten reams."),
+                ("2.2", "Black high-yield toner cartridges (SKU DO-TNR) are $85.00 each."),
+                ("2.3", "Ballpoint pens (SKU DO-PEN) are $9.50 per box of 50."),
             ]),
         ],
     },
@@ -135,16 +135,33 @@ COMMON_SECTIONS = [
         ("1.2", "Each purchase is made by a written purchase order (\"PO\") issued by Buyer. Supplier shall reference the PO number on every invoice."),
     ]),
 ]
+# Closing sections, numbered right after each vendor's own sections (see contract_sections).
 TAIL_SECTIONS = [
-    ("8", "Invoicing and Payment", [
-        ("8.1", "Payment terms are net thirty (30) days from receipt of a correct invoice."),
-        ("8.2", "Supplier shall issue one invoice per shipment and shall not invoice the same goods more than once. A re-issued invoice must clearly state that it replaces an earlier invoice."),
-        ("8.3", "Buyer may dispute any invoice amount within thirty (30) days of receipt by written notice to Supplier. Undisputed amounts shall be paid on time."),
+    ("Invoicing and Payment", [
+        "Payment terms are net thirty (30) days from receipt of a correct invoice.",
+        "Supplier shall issue one invoice per shipment and shall not invoice the same goods more than once. A re-issued invoice must clearly state that it replaces an earlier invoice.",
+        "Buyer may dispute any invoice amount within thirty (30) days of receipt by written notice to Supplier. Undisputed amounts shall be paid on time.",
     ]),
-    ("9", "Confidentiality", [
-        ("9.1", "The prices in this Agreement are confidential information of both parties and shall not be disclosed to any third party."),
+    ("Confidentiality", [
+        "The prices in this Agreement are confidential information of both parties and shall not be disclosed to any third party.",
     ]),
 ]
+
+
+def contract_sections(vendor):
+    """All sections of a vendor's contract, numbered 1, 2, 3, ... with no gaps."""
+    own = COMMON_SECTIONS + VENDORS[vendor]["sections"]
+    nums = [int(n) for n, _, _ in own]
+    assert nums == list(range(1, len(own) + 1)), f"{vendor}: sections {nums}"
+    tail = [(str(len(own) + i + 1), heading, [(f"{len(own) + i + 1}.{k + 1}", text) for k, text in enumerate(texts)])
+            for i, (heading, texts) in enumerate(TAIL_SECTIONS)]
+    return own + tail
+
+
+def duplicate_clause(vendor):
+    """The 'no invoicing the same goods twice' clause: second clause of the Invoicing section."""
+    return next(f"{n}.2" for n, heading, _ in contract_sections(vendor) if heading == "Invoicing and Payment")
+
 
 # ---------------------------------------------------------------- purchase orders + invoices
 # line = (sku, qty, unit_price, invoice_unit_label)
@@ -176,12 +193,12 @@ INVOICES = [
          lines=[L("DO-PPR", 15, 45.00), L("DO-TNR", 2, 85.00), L("DO-PEN", 6, 9.50)],
          expect=dict(status="FAIL", check="duplicate", at_risk=902.00,
                      proof="Same vendor, same PO-7695 and same $902.00 as previous transaction INV-D-3270, already "
-                           "paid on 2026-10-16; the number differs only by a trailing 'A'. Contract 8.2: no "
+                           "paid on 2026-10-16; the number differs only by a trailing 'A'. Contract 3.2: no "
                            "invoicing the same goods twice.")),
     dict(set="live", file="04_delta_INV-D-3301.pdf", vendor="delta", number="INV-D-3301", date="2026-10-24", po="PO-7790",
          lines=[L("DO-PPR", 40, 45.00), L("DO-TNR", 6, 85.00)],
          expect=dict(status="PASS", check=None, at_risk=0.00,
-                     proof="Prices match clauses 1.1 and 1.2; quantities match PO-7790 and its receipt.")),
+                     proof="Prices match clauses 2.1 and 2.2; quantities match PO-7790 and its receipt.")),
     # ---- wifi-off demo
     dict(set="wifi_off", file="05_evergreen_INV-EV-208.pdf", vendor="evergreen", number="INV-EV-208", date="2026-10-24", po="PO-7802",
          lines=[L("BR-6204", 10, 150.00, "box (12)")],
@@ -249,7 +266,6 @@ RECEIPT_OVERRIDES = {"PO-7781": ("GR-4432", 80)}
 CONVERSIONS = {("BR-6204", "box (12)"): 12}     # Evergreen clause 2.4: boxes of 12 units
 VOLUME_TIERS = {"BX-200": (2000, 11.40, "3.2")}  # Bolt clause 3.2: more than 2,000 units -> $11.40
 QUANTITY_CLAUSES = {"coastal": "2.1"}           # "goods shipped in excess ... will not be paid for"
-DUPLICATE_CLAUSE = "8.2"                        # "shall not invoice the same goods more than once"
 
 # Previous transactions: invoices already audited and paid, saved in each company's transactions/ folder.
 # INV-1043 already billed 1,200 of PO-7701's 2,000 boxes (see live INV-1047).
@@ -291,7 +307,7 @@ def unit_label(vendor, line):
 
 
 def clause_text(vendor, number):
-    for _, _, clauses in COMMON_SECTIONS + VENDORS[vendor]["sections"] + TAIL_SECTIONS:
+    for _, _, clauses in contract_sections(vendor):
         for cnum, text in clauses:
             if cnum == number:
                 return text
@@ -360,7 +376,7 @@ def audit(inv, po, receipt, history):
     dup = next((h for h in previous if invoice_total(h["lines"]) == total), None)
     if dup:
         checks["duplicate"] = "FAIL"
-        clauses.append(DUPLICATE_CLAUSE)
+        clauses.append(duplicate_clause(vendor))
 
     def layer(*names):
         vals = [checks[n] for n in names]
@@ -475,7 +491,7 @@ def write_invoice_json(path, vendor_key, number, date, po, lines):
 
 def write_contract(vendor_key):
     v = VENDORS[vendor_key]
-    sections = COMMON_SECTIONS + v["sections"] + TAIL_SECTIONS
+    sections = contract_sections(vendor_key)
     pdf = ROOT / "companies" / vendor_key / "contract.pdf"
     txt = pdf.with_suffix(".txt")
     title = f"MASTER SUPPLY AGREEMENT — {v['name']}"

@@ -12,10 +12,10 @@ This Agreement is made on January 1, 2026 between Harbor Ridge Manufacturing, In
 2.3 The unit price for SKU AC-WRAP (stretch wrap roll) shall be $18.75 per roll.
 2.4 All prices in this Section 2 are fixed from January 1, 2026 through December 31, 2026 and include delivery to Buyer's Oakland facility.
 
-8. Invoicing and Payment
-8.1 Payment terms are net thirty (30) days from receipt of a correct invoice.
-8.2 Supplier shall issue one invoice per shipment and shall not invoice the same goods more than once. A re-issued invoice must clearly state that it replaces an earlier invoice.
-8.3 Buyer may dispute any invoice amount within thirty (30) days of receipt by written notice to Supplier. Undisputed amounts shall be paid on time.
+3. Invoicing and Payment
+3.1 Payment terms are net thirty (30) days from receipt of a correct invoice.
+3.2 Supplier shall issue one invoice per shipment and shall not invoice the same goods more than once. A re-issued invoice must clearly state that it replaces an earlier invoice.
+3.3 Buyer may dispute any invoice amount within thirty (30) days of receipt by written notice to Supplier. Undisputed amounts shall be paid on time.
 
-9. Confidentiality
-9.1 The prices in this Agreement are confidential information of both parties and shall not be disclosed to any third party.
+4. Confidentiality
+4.1 The prices in this Agreement are confidential information of both parties and shall not be disclosed to any third party.

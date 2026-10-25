@@ -214,13 +214,13 @@
         ],
         "contract": "companies/delta/contract.pdf",
         "clauses": {
-          "1.1": "This Master Supply Agreement (the \"Agreement\") governs all purchases by Buyer from Supplier between January 1, 2026 and December 31, 2026.",
-          "1.2": "Each purchase is made by a written purchase order (\"PO\") issued by Buyer. Supplier shall reference the PO number on every invoice.",
-          "1.3": "Ballpoint pens (SKU DO-PEN) are $9.50 per box of 50.",
-          "8.2": "Supplier shall issue one invoice per shipment and shall not invoice the same goods more than once. A re-issued invoice must clearly state that it replaces an earlier invoice."
+          "2.1": "Copy paper (SKU DO-PPR) is $45.00 per case of ten reams.",
+          "2.2": "Black high-yield toner cartridges (SKU DO-TNR) are $85.00 each.",
+          "2.3": "Ballpoint pens (SKU DO-PEN) are $9.50 per box of 50.",
+          "3.2": "Supplier shall issue one invoice per shipment and shall not invoice the same goods more than once. A re-issued invoice must clearly state that it replaces an earlier invoice."
         }
       },
-      "proof": "Same vendor, same PO-7695 and same $902.00 as previous transaction INV-D-3270, already paid on 2026-10-16; the number differs only by a trailing 'A'. Contract 8.2: no invoicing the same goods twice."
+      "proof": "Same vendor, same PO-7695 and same $902.00 as previous transaction INV-D-3270, already paid on 2026-10-16; the number differs only by a trailing 'A'. Contract 3.2: no invoicing the same goods twice."
     },
     {
       "set": "live",
@@ -264,11 +264,11 @@
         "previous_transactions": [],
         "contract": "companies/delta/contract.pdf",
         "clauses": {
-          "1.1": "This Master Supply Agreement (the \"Agreement\") governs all purchases by Buyer from Supplier between January 1, 2026 and December 31, 2026.",
-          "1.2": "Each purchase is made by a written purchase order (\"PO\") issued by Buyer. Supplier shall reference the PO number on every invoice."
+          "2.1": "Copy paper (SKU DO-PPR) is $45.00 per case of ten reams.",
+          "2.2": "Black high-yield toner cartridges (SKU DO-TNR) are $85.00 each."
         }
       },
-      "proof": "Prices match clauses 1.1 and 1.2; quantities match PO-7790 and its receipt."
+      "proof": "Prices match clauses 2.1 and 2.2; quantities match PO-7790 and its receipt."
     },
     {
       "set": "wifi_off",
@@ -455,8 +455,8 @@
         "previous_transactions": [],
         "contract": "companies/delta/contract.pdf",
         "clauses": {
-          "1.3": "Ballpoint pens (SKU DO-PEN) are $9.50 per box of 50.",
-          "1.1": "This Master Supply Agreement (the \"Agreement\") governs all purchases by Buyer from Supplier between January 1, 2026 and December 31, 2026."
+          "2.3": "Ballpoint pens (SKU DO-PEN) are $9.50 per box of 50.",
+          "2.1": "Copy paper (SKU DO-PPR) is $45.00 per case of ten reams."
         }
       },
       "proof": null
@@ -785,7 +785,7 @@
         "previous_transactions": [],
         "contract": "companies/delta/contract.pdf",
         "clauses": {
-          "1.2": "Each purchase is made by a written purchase order (\"PO\") issued by Buyer. Supplier shall reference the PO number on every invoice."
+          "2.2": "Black high-yield toner cartridges (SKU DO-TNR) are $85.00 each."
         }
       },
       "proof": null
@@ -974,7 +974,7 @@
         "previous_transactions": [],
         "contract": "companies/delta/contract.pdf",
         "clauses": {
-          "1.1": "This Master Supply Agreement (the \"Agreement\") governs all purchases by Buyer from Supplier between January 1, 2026 and December 31, 2026."
+          "2.1": "Copy paper (SKU DO-PPR) is $45.00 per case of ten reams."
         }
       },
       "proof": null
