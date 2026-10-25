@@ -1,0 +1,26 @@
+MASTER SUPPLY AGREEMENT — Coastal Supply Co.
+
+This Agreement is made on January 1, 2026 between Harbor Ridge Manufacturing, Inc. ("Buyer") and Coastal Supply Co., 17 Harbor Blvd, Long Beach, CA 90802 ("Supplier").
+
+1. Scope and Term
+1.1 This Master Supply Agreement (the "Agreement") governs all purchases by Buyer from Supplier between January 1, 2026 and December 31, 2026.
+1.2 Each purchase is made by a written purchase order ("PO") issued by Buyer. Supplier shall reference the PO number on every invoice.
+
+2. Ordering
+2.1 Supplier shall ship only the quantities stated on Buyer's purchase order. Goods shipped in excess of the purchase order quantity will not be paid for.
+
+3. Delivery
+3.1 Delivery is FOB Buyer's facility. Risk of loss passes on delivery.
+
+4. Pricing
+4.1 Heavy-duty wooden pallets 48x40 (SKU CS-PAL) are priced at sixty dollars ($60.00) each.
+4.2 Stackable plastic crates, 60 L (SKU CS-CRT) are priced at twenty-two dollars and fifty cents ($22.50) each.
+4.3 Prices are firm for the term of this Agreement.
+
+8. Invoicing and Payment
+8.1 Payment terms are net thirty (30) days from receipt of a correct invoice.
+8.2 Supplier shall issue one invoice per shipment and shall not invoice the same goods more than once. A re-issued invoice must clearly state that it replaces an earlier invoice.
+8.3 Buyer may dispute any invoice amount within thirty (30) days of receipt by written notice to Supplier. Undisputed amounts shall be paid on time.
+
+9. Confidentiality
+9.1 The prices in this Agreement are confidential information of both parties and shall not be disclosed to any third party.

@@ -1,0 +1,16 @@
+{
+  "po_number": "PO-7763",
+  "vendor": "Evergreen Parts Inc.",
+  "date": "2026-10-21",
+  "buyer": "Harbor Ridge Manufacturing, Inc.",
+  "lines": [
+    {
+      "line": 1,
+      "sku": "GR-500",
+      "description": "Lithium grease tube, 500 g",
+      "qty": 48,
+      "unit": "tube",
+      "unit_price": 7.8
+    }
+  ]
+}

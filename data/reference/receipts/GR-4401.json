@@ -1,0 +1,13 @@
+{
+  "receipt_id": "GR-4401",
+  "po_number": "PO-7701",
+  "vendor": "Acme Packaging Co.",
+  "date": "2026-10-05",
+  "lines": [
+    {
+      "sku": "AC-1212",
+      "qty_received": 2000,
+      "unit": "unit"
+    }
+  ]
+}

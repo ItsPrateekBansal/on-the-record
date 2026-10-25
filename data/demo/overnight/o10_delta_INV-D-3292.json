@@ -1,0 +1,16 @@
+{
+  "invoice_number": "INV-D-3292",
+  "vendor": "Delta Office Solutions",
+  "po_number": "PO-7769",
+  "date": "2026-10-22",
+  "total": 340.0,
+  "lines": [
+    {
+      "sku": "DO-TNR",
+      "description": "Toner cartridge, black, high yield",
+      "qty": 4,
+      "unit": null,
+      "unit_price": 85.0
+    }
+  ]
+}

@@ -1,0 +1,32 @@
+{
+  "po_number": "PO-7695",
+  "vendor": "Delta Office Solutions",
+  "date": "2026-10-06",
+  "buyer": "Harbor Ridge Manufacturing, Inc.",
+  "lines": [
+    {
+      "line": 1,
+      "sku": "DO-PPR",
+      "description": "Copy paper, letter, case of 10 reams",
+      "qty": 15,
+      "unit": "case",
+      "unit_price": 45.0
+    },
+    {
+      "line": 2,
+      "sku": "DO-TNR",
+      "description": "Toner cartridge, black, high yield",
+      "qty": 2,
+      "unit": "unit",
+      "unit_price": 85.0
+    },
+    {
+      "line": 3,
+      "sku": "DO-PEN",
+      "description": "Ballpoint pens, box of 50",
+      "qty": 6,
+      "unit": "box",
+      "unit_price": 9.5
+    }
+  ]
+}

@@ -1,0 +1,16 @@
+{
+  "invoice_number": "INV-B-5471",
+  "vendor": "Bolt Industrial Supply LLC",
+  "po_number": "PO-7690",
+  "date": "2026-09-30",
+  "total": 4800.0,
+  "lines": [
+    {
+      "sku": "BX-200",
+      "description": "Stainless anchor bolt M16 x 200 mm",
+      "qty": 400,
+      "unit": null,
+      "unit_price": 12.0
+    }
+  ]
+}

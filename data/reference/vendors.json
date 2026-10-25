@@ -1,0 +1,27 @@
+{
+  "acme": {
+    "name": "Acme Packaging Co.",
+    "email": "billing@acmepackaging.local",
+    "address": "88 Carton Ave, Stockton, CA 95203"
+  },
+  "bolt": {
+    "name": "Bolt Industrial Supply LLC",
+    "email": "invoices@boltindustrial.local",
+    "address": "4410 Rivet Road, Fresno, CA 93725"
+  },
+  "coastal": {
+    "name": "Coastal Supply Co.",
+    "email": "ar@coastalsupply.local",
+    "address": "17 Harbor Blvd, Long Beach, CA 90802"
+  },
+  "delta": {
+    "name": "Delta Office Solutions",
+    "email": "billing@deltaoffice.local",
+    "address": "905 Market St, Suite 300, San Francisco, CA 94103"
+  },
+  "evergreen": {
+    "name": "Evergreen Parts Inc.",
+    "email": "accounts@evergreenparts.local",
+    "address": "3021 Timber Lane, Sacramento, CA 95815"
+  }
+}

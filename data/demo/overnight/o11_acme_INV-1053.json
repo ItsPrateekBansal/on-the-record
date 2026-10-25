@@ -1,0 +1,16 @@
+{
+  "invoice_number": "INV-1053",
+  "vendor": "Acme Packaging Co.",
+  "po_number": "PO-7770",
+  "date": "2026-10-22",
+  "total": 450.0,
+  "lines": [
+    {
+      "sku": "AC-WRAP",
+      "description": "Stretch wrap roll, 18 in x 1500 ft",
+      "qty": 24,
+      "unit": null,
+      "unit_price": 18.75
+    }
+  ]
+}

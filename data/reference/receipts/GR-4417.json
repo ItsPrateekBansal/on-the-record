@@ -1,0 +1,13 @@
+{
+  "receipt_id": "GR-4417",
+  "po_number": "PO-7766",
+  "vendor": "Bolt Industrial Supply LLC",
+  "date": "2026-10-21",
+  "lines": [
+    {
+      "sku": "BX-200",
+      "qty_received": 250,
+      "unit": "unit"
+    }
+  ]
+}

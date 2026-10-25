@@ -1,0 +1,18 @@
+{
+  "receipt_id": "GR-4412",
+  "po_number": "PO-7761",
+  "vendor": "Bolt Industrial Supply LLC",
+  "date": "2026-10-20",
+  "lines": [
+    {
+      "sku": "NT-080",
+      "qty_received": 1000,
+      "unit": "unit"
+    },
+    {
+      "sku": "WS-016",
+      "qty_received": 1000,
+      "unit": "unit"
+    }
+  ]
+}

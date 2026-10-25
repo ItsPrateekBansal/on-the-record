@@ -1,0 +1,16 @@
+{
+  "invoice_number": "INV-D-3296",
+  "vendor": "Delta Office Solutions",
+  "po_number": "PO-7773",
+  "date": "2026-10-23",
+  "total": 1125.0,
+  "lines": [
+    {
+      "sku": "DO-PPR",
+      "description": "Copy paper, letter, case of 10 reams",
+      "qty": 25,
+      "unit": null,
+      "unit_price": 45.0
+    }
+  ]
+}

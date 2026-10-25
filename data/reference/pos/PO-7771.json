@@ -1,0 +1,16 @@
+{
+  "po_number": "PO-7771",
+  "vendor": "Coastal Supply Co.",
+  "date": "2026-10-23",
+  "buyer": "Harbor Ridge Manufacturing, Inc.",
+  "lines": [
+    {
+      "line": 1,
+      "sku": "CS-PAL",
+      "description": "Heavy-duty wooden pallet 48x40",
+      "qty": 45,
+      "unit": "unit",
+      "unit_price": 60.0
+    }
+  ]
+}

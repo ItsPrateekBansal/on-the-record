@@ -1,0 +1,24 @@
+{
+  "po_number": "PO-7790",
+  "vendor": "Delta Office Solutions",
+  "date": "2026-10-24",
+  "buyer": "Harbor Ridge Manufacturing, Inc.",
+  "lines": [
+    {
+      "line": 1,
+      "sku": "DO-PPR",
+      "description": "Copy paper, letter, case of 10 reams",
+      "qty": 40,
+      "unit": "case",
+      "unit_price": 45.0
+    },
+    {
+      "line": 2,
+      "sku": "DO-TNR",
+      "description": "Toner cartridge, black, high yield",
+      "qty": 6,
+      "unit": "unit",
+      "unit_price": 85.0
+    }
+  ]
+}

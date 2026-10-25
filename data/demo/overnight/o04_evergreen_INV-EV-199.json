@@ -1,0 +1,16 @@
+{
+  "invoice_number": "INV-EV-199",
+  "vendor": "Evergreen Parts Inc.",
+  "po_number": "PO-7763",
+  "date": "2026-10-21",
+  "total": 374.4,
+  "lines": [
+    {
+      "sku": "GR-500",
+      "description": "Lithium grease tube, 500 g",
+      "qty": 4,
+      "unit": "carton",
+      "unit_price": 93.6
+    }
+  ]
+}

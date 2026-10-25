@@ -1,0 +1,16 @@
+{
+  "po_number": "PO-7764",
+  "vendor": "Coastal Supply Co.",
+  "date": "2026-10-21",
+  "buyer": "Harbor Ridge Manufacturing, Inc.",
+  "lines": [
+    {
+      "line": 1,
+      "sku": "CS-CRT",
+      "description": "Stackable plastic crate, 60 L",
+      "qty": 200,
+      "unit": "unit",
+      "unit_price": 22.5
+    }
+  ]
+}

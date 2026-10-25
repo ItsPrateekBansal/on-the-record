@@ -1,0 +1,16 @@
+{
+  "invoice_number": "INV-EV-190",
+  "vendor": "Evergreen Parts Inc.",
+  "po_number": "PO-7697",
+  "date": "2026-10-07",
+  "total": 552.0,
+  "lines": [
+    {
+      "sku": "BR-6204",
+      "description": "Deep groove ball bearing 6204-2RS",
+      "qty": 4,
+      "unit": "box (12)",
+      "unit_price": 138.0
+    }
+  ]
+}
