@@ -24,7 +24,7 @@ from pathlib import Path
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
 from engine import audit_log  # noqa: E402
 from engine.checks import run_checks  # noqa: E402
-from engine.evidence import DATA_DIR, EvidenceError, check_contracts, gather_evidence  # noqa: E402
+from engine.evidence import DATA_DIR, EvidenceError, gather_evidence  # noqa: E402
 from engine.llm import model_name  # noqa: E402
 from engine.report import alert, explain_and_draft, save_transaction, write_result  # noqa: E402
 from parser.invoice_parser import ParseError, parse_invoice, parse_invoice_file  # noqa: E402
@@ -52,8 +52,7 @@ def _unreadable(path: Path, reason: str, data_dir: Path, vendor: str | None = No
     return result
 
 
-def process_file(path, data_dir: Path = DATA_DIR, model: str | None = None, move: bool = True,
-                 fallback: bool = True) -> dict:
+def process_file(path, data_dir: Path = DATA_DIR, model: str | None = None, move: bool = True) -> dict:
     path, data_dir = Path(path), Path(data_dir)
     audit_log.append(data_dir, "received", None, file=path.name)
     try:
@@ -61,7 +60,7 @@ def process_file(path, data_dir: Path = DATA_DIR, model: str | None = None, move
     except (ParseError, ValueError) as exc:
         return _unreadable(path, f"could not read the invoice ({exc})", data_dir)
     try:
-        ev = gather_evidence(invoice, data_dir, model, fallback)                # steps 4-6
+        ev = gather_evidence(invoice, data_dir, model)                          # steps 4-6
     except EvidenceError as exc:
         return _unreadable(path, str(exc), data_dir, invoice.vendor)
     audit_log.append(data_dir, "evidence_loaded", invoice.invoice_no, company=ev.company.key, po=invoice.po,
@@ -94,37 +93,28 @@ def _line(result: dict) -> str:
     return f"{result['status']:<13} {result['invoice']:<12} {result.get('vendor') or '?':<28} {result['main_check'] or '':<17} {money}"
 
 
-def preflight(data_dir: Path, model: str | None, fallback: bool):
-    """With a model: read all contracts now, so no invoice waits for it and problems show up early."""
-    if model:
-        print(f"reading contracts with {model} ...")
-        for line in check_contracts(model, data_dir, fallback):
-            print("  " + line)
-
-
-def run_once(data_dir: Path = DATA_DIR, model: str | None = None, fallback: bool = True) -> list[dict]:
+def run_once(data_dir: Path = DATA_DIR, model: str | None = None) -> list[dict]:
     inbox = Path(data_dir) / "inbox"
     files = sorted(p for p in inbox.iterdir() if p.suffix.lower() in (".json", ".pdf") and not p.name.startswith("."))
     results = []
     for p in files:
-        results.append(process_file(p, data_dir, model, fallback=fallback))
+        results.append(process_file(p, data_dir, model))
         print(_line(results[-1]))
     return results
 
 
-def watch(data_dir: Path = DATA_DIR, model: str | None = None, fallback: bool = True):
+def watch(data_dir: Path = DATA_DIR, model: str | None = None):
     sys.path.insert(0, str(Path(__file__).resolve().parent.parent / "watcher"))
     from inbox import InboxWatcher
     exts = (".json", ".pdf") if model else (".json",)
-    InboxWatcher(Path(data_dir) / "inbox",
-                 lambda path, _raw: print(_line(process_file(path, data_dir, model, fallback=fallback))),
+    InboxWatcher(Path(data_dir) / "inbox", lambda path, _raw: print(_line(process_file(path, data_dir, model))),
                  extensions=exts).run()
 
 
 COMPARED = ("status", "main_check", "at_risk", "amount_under_review", "result_folder")
 
 
-def selftest(data_dir: Path = DATA_DIR, model: str | None = None, fallback: bool = True) -> bool:
+def selftest(data_dir: Path = DATA_DIR, model: str | None = None) -> bool:
     """Audit every demo invoice in a scratch copy of data/ and compare with the answer key."""
     expected = json.loads((Path(data_dir) / "expected_results.json").read_text())["invoices"]
     bad = 0
@@ -135,20 +125,15 @@ def selftest(data_dir: Path = DATA_DIR, model: str | None = None, fallback: bool
             shutil.rmtree(scratch / d, ignore_errors=True)
         for row in expected:
             src = scratch / "demo" / row["set"] / (row["file"] if model else row["file"].replace(".pdf", ".json"))
-            got = process_file(src, scratch, model, move=False, fallback=fallback)
+            got = process_file(src, scratch, model, move=False)
             diffs = [k for k in COMPARED if got[k] != row[k]]
-            if not got["layers"]:                       # could not be read: reasons say why
-                diffs.append(f"unreadable: {got['reasons'][0][:120]}")
-            else:
-                diffs += [f"layers.{n}" for n in row["layers"]
-                          if got["layers"][n]["status"] != row["layers"][n]["status"]
-                          or got["layers"][n]["checks"] != row["layers"][n]["checks"]]
-                if got["layers"]["historical"]["matched_transaction"] != row["layers"]["historical"]["matched_transaction"]:
-                    diffs.append("matched_transaction")
-                diffs += [f"evidence.{k}" for k in ("po", "receipt", "previous_transactions", "contract", "clauses")
-                          if got["evidence"].get(k) != row["evidence"][k]]
-            via = f"   [{got['terms_source']}]" if model and "rules" in got.get("terms_source", "") else ""
-            print(("ok   " if not diffs else "DIFF ") + _line(got) + (f"   {diffs}" if diffs else "") + via)
+            diffs += [f"layers.{n}" for n in row["layers"] if got["layers"][n]["status"] != row["layers"][n]["status"]
+                      or got["layers"][n]["checks"] != row["layers"][n]["checks"]]
+            if got["layers"]["historical"]["matched_transaction"] != row["layers"]["historical"]["matched_transaction"]:
+                diffs.append("matched_transaction")
+            diffs += [f"evidence.{k}" for k in ("po", "receipt", "previous_transactions", "contract", "clauses")
+                      if got["evidence"][k] != row["evidence"][k]]
+            print(("ok   " if not diffs else "DIFF ") + _line(got) + (f"   {diffs}" if diffs else ""))
             bad += bool(diffs)
         ok, n, problem = audit_log.verify(scratch)
         print(f"\naudit log: {n} entries, chain {'intact' if ok else 'BROKEN: ' + problem}")
@@ -165,19 +150,15 @@ def main():
     ap.add_argument("--data", default=str(DATA_DIR), help="data folder (default: repo data/)")
     ap.add_argument("--model", help="local Ollama model (default: $WATCHDOG_MODEL). Without one: JSON "
                                     "invoices only, rule-based contract reading, template explanations")
-    ap.add_argument("--no-fallback", action="store_true",
-                    help="strict: contract terms the model still gets wrong go to NEEDS_REVIEW "
-                         "(default: the rule-based reader is used for them, marked in terms_source)")
     args = ap.parse_args()
-    data_dir, model, fallback = Path(args.data), model_name(args.model), not args.no_fallback
+    data_dir, model = Path(args.data), model_name(args.model)
     if args.selftest:
-        sys.exit(0 if selftest(data_dir, model, fallback) else 1)
+        sys.exit(0 if selftest(data_dir, model) else 1)
     print(f"model: {model or 'none (rules + templates)'}")
-    preflight(data_dir, model, fallback)
     if args.once:
-        run_once(data_dir, model, fallback)
+        run_once(data_dir, model)
     else:
-        watch(data_dir, model, fallback)
+        watch(data_dir, model)
 
 
 if __name__ == "__main__":

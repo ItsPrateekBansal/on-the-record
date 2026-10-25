@@ -144,42 +144,18 @@ Return JSON only, no other text, in this shape:
   "quote": str, "units_per_box": int or null,
   "volume_tier": {{"more_than_qty": int, "unit_price": number, "clause": str}} or null}}]}}
 One entry per SKU in this list: {skus}.
-"sku": exactly the SKU code from the list. "clause": only the clause number that sets the SKU's
-price, e.g. "3.1". "quote": that clause's text copied word for word. "unit": what the price is
-per (unit, roll, tube, case, box).
-"units_per_box": only if the price is per single unit AND the contract says how many units a box
-holds; null otherwise. A pack size such as "case of ten reams" or "box of 50" when the price is
-already per case or per box is NOT units_per_box and NOT a volume tier.
-"volume_tier": only if a separate clause gives a different price above a stated quantity; else null.
+"clause" is the clause number that sets the SKU's price, e.g. "3.1". "quote" is that clause's
+text copied word for word. "unit" is what the price is per (unit, roll, tube, case, box).
+"units_per_box": only if the contract itself says how many units a box holds, else null.
+"volume_tier": only if another clause gives a different price above a quantity, else null.
 Never invent a value that is not written in the contract.
-{feedback}
+
 CONTRACT:
 {contract}"""
-
-FEEDBACK = """Your previous answer was rejected for these SKUs. Answer again for them only, and use
-null for anything the contract does not state:
-{lines}
-"""
-
-_QUOTES = str.maketrans({"“": '"', "”": '"', "‘": "'", "’": "'"})
-
-
-def _squash(text: str) -> str:
-    """Whitespace and typographic quotes don't count as differences."""
-    return " ".join(str(text).translate(_QUOTES).split()).strip(" \"'")
-
-
-def _number(value) -> float:
-    return float(str(value).replace("$", "").replace(",", "").strip())
 
 
 def _amount_in(amount, text: str) -> bool:
     return any(f"${v}" in text for v in (f"{amount:,.2f}", f"{amount:.2f}"))
-
-
-def _clause_number(value) -> str:
-    m = re.search(r"\d+\.\d+", str(value or ""))       # "Clause 2.1", "Section 2.1" -> "2.1"
-    return m.group(0) if m else ""
 
 
 def _validated_term(sku: str, raw: dict, contract: Contract, unit: str | None = None) -> tuple[Term | None, str | None]:
@@ -187,118 +163,83 @@ def _validated_term(sku: str, raw: dict, contract: Contract, unit: str | None = 
 
     unit: the unit the price is per, from companies/index.json (master data). The model's own
     wording ("box of 50") is not used for it. A box size only matters when the price is per unit.
-    Formatting ("Clause 2.1", curly quotes, "$45.00" as text) is normalized; facts are not.
     """
+    clause = str(raw.get("clause", "")).strip()
+    text = contract.clauses.get(clause)
+    if text is None:
+        return None, f"clause {clause!r} does not exist"
+    quote = str(raw.get("quote", "")).strip()
+    if len(quote) < 20 or quote not in text:
+        return None, f"quote is not the text of clause {clause}"
+    if sku not in text:
+        return None, f"clause {clause} does not mention {sku}"
     try:
-        clause = _clause_number(raw.get("clause"))
-        text = contract.clauses.get(clause)
-        if text is None:
-            return None, f"clause {raw.get('clause')!r} does not exist"
-        quote = _squash(raw.get("quote", ""))
-        if len(quote) < 20 or quote not in _squash(text):
-            return None, f"quote is not the text of clause {clause}"
-        if sku not in text:
-            return None, f"clause {clause} does not mention {sku}"
-        try:
-            price = _number(raw["unit_price"])
-        except (KeyError, TypeError, ValueError):
-            return None, "no unit price"
-        if not _amount_in(price, text):
-            return None, f"${price:.2f} is not written in clause {clause}"
-        unit = (unit or str(raw.get("unit") or "unit")).strip().lower()
-        box = raw.get("units_per_box") if unit in ("unit", "each") else None
-        if box is not None:
-            box = int(_number(box))
-            if not re.search(rf"\b{box}\b", text):
-                return None, f"{box} units per box is not written in clause {clause}"
-        tier = None
-        t = raw.get("volume_tier")
-        if isinstance(t, dict) and any(v is not None for v in t.values()):
-            tclause = _clause_number(t.get("clause"))
-            ttext = contract.clauses.get(tclause, "")
-            qty, tprice = int(_number(t.get("more_than_qty"))), _number(t.get("unit_price"))
-            if not (ttext and sku in ttext and _amount_in(tprice, ttext)
-                    and (f"{qty:,}" in ttext or str(qty) in ttext)):
-                return None, f"volume tier {t} is not written in the contract"
-            tier = (qty, tprice, tclause)
-    except (TypeError, ValueError) as exc:                 # any malformed field: reject, never crash
-        return None, f"malformed answer ({exc})"
+        price = float(raw["unit_price"])
+    except (KeyError, TypeError, ValueError):
+        return None, "no unit price"
+    if not _amount_in(price, text):
+        return None, f"${price:.2f} is not written in clause {clause}"
+    unit = (unit or str(raw.get("unit") or "unit")).strip().lower()
+    box = raw.get("units_per_box") if unit in ("unit", "each") else None
+    if box is not None and not re.search(rf"\b{int(box)}\b", text):
+        return None, f"{box} units per box is not written in clause {clause}"
+    tier = None
+    if raw.get("volume_tier"):
+        t = raw["volume_tier"]
+        ttext = contract.clauses.get(str(t.get("clause", "")).strip(), "")
+        qty = int(t.get("more_than_qty", 0))
+        if not (ttext and sku in ttext and _amount_in(float(t.get("unit_price", 0)), ttext)
+                and (f"{qty:,}" in ttext or str(qty) in ttext)):
+            return None, f"volume tier {t} is not written in the contract"
+        tier = (qty, float(t["unit_price"]), str(t["clause"]).strip())
     return Term(sku=sku, unit=unit, clause=clause, quote=text,
-                unit_price=price, volume_tier=tier, units_per_box=box), None
+                unit_price=price, volume_tier=tier, units_per_box=int(box) if box is not None else None), None
 
 
-def _match_sku(value, skus) -> str | None:
-    value = str(value or "")
-    return next((s for s in skus if s == value.strip() or re.search(rf"(?<![\w-]){re.escape(s)}(?![\w-])", value)), None)
-
-
-def extract_terms_llm(contract: Contract, company: Company, model: str, skus=None,
-                      retries: int = 2) -> tuple[dict, list]:
-    """Step 5 with the local model: the whole contract goes in, terms come out, Python validates.
-
-    Rejected SKUs are asked again (up to `retries` times) with the reason, so the model can
-    correct itself. Returns (accepted terms, problems for SKUs still rejected). Nothing the model
-    says is used unchecked.
-    """
-    from .llm import generate_json
-    wanted = [s for s in (skus or company.skus) if s in company.skus]
-    accepted, why_not = {}, {}
-    for _ in range(1 + retries):
-        todo = [s for s in wanted if s not in accepted]
-        if not todo:
-            break
-        feedback = FEEDBACK.format(lines="\n".join(f"- {s}: {why_not[s]}" for s in todo)) if why_not else ""
-        try:
-            raw_terms = generate_json(TERMS_PROMPT.format(skus=", ".join(todo), feedback=feedback,
-                                                          contract=contract.text), model)["terms"]
-            raw_terms = raw_terms if isinstance(raw_terms, list) else []
-        except (ValueError, KeyError, TypeError) as exc:
-            why_not.update({s: f"no usable JSON ({exc})" for s in todo})
-            continue
-        by_sku = {}
-        for t in raw_terms:
-            if isinstance(t, dict) and (s := _match_sku(t.get("sku"), todo)):
-                by_sku.setdefault(s, t)
-        for s in todo:
-            term, why = (_validated_term(s, by_sku[s], contract, company.skus[s]["unit"])
-                         if s in by_sku else (None, "not returned"))
-            if term:
-                accepted[s] = term
-            else:
-                why_not[s] = why
-    problems = [f"{s}: model's contract terms rejected ({why_not[s]})" for s in wanted if s not in accepted]
-    return accepted, problems
-
-
-_TERMS_CACHE: dict = {}       # (company, model, contract text) -> {sku: accepted Term}
+_TERMS_CACHE: dict = {}       # (company, model, contract text) -> (terms, problems)
 
 
 def cached_terms_llm(contract: Contract, company: Company, model: str) -> tuple[dict, list]:
-    """Model terms for all of the company's SKUs; accepted SKUs are read once per run.
+    """extract_terms_llm for all of the company's SKUs, once per contract and model.
 
-    Contracts don't change between invoices. Only SKUs that were rejected are asked again.
+    Contracts don't change between invoices, so the model reads each one once per run. A read
+    with problems is not cached, so the next invoice tries again.
     """
-    cache = _TERMS_CACHE.setdefault((company.key, model, contract.text), {})
-    missing = [s for s in company.skus if s not in cache]
-    problems = []
-    if missing:
-        terms, problems = extract_terms_llm(contract, company, model, missing)
-        cache.update(terms)
-    return dict(cache), list(problems)
-
-
-def check_contracts(model: str, data_dir: Path = DATA_DIR, fallback: bool = True) -> list[str]:
-    """Read every company's contract with the model before any invoice arrives. One line each."""
-    index = json.loads((Path(data_dir) / "companies" / "index.json").read_text())
-    report = []
-    for c in index.values():
-        co = load_company(c["name"], data_dir)
-        terms, problems = cached_terms_llm(read_contract(co), co, model)
-        line = f"{co.key}: {len(terms)}/{len(co.skus)} contract terms accepted from {model}"
+    key = (company.key, model, contract.text)
+    if key not in _TERMS_CACHE:
+        terms, problems = extract_terms_llm(contract, company, model)
         if problems:
-            line += (" — rules used for the rest: " if fallback else " — NEEDS REVIEW: ") + "; ".join(problems)
-        report.append(line)
-    return report
+            return terms, problems
+        _TERMS_CACHE[key] = (terms, problems)
+    return _TERMS_CACHE[key]
+
+
+def extract_terms_llm(contract: Contract, company: Company, model: str, skus=None) -> tuple[dict, list]:
+    """Step 5 with the local model: the whole contract goes in, terms come out, Python validates.
+
+    Returns (terms, problems). A SKU whose terms fail validation gets unit_price None, which the
+    checks turn into NEEDS_REVIEW. Nothing the model says is used unchecked.
+    """
+    from .llm import generate_json
+    skus = list(skus or company.skus)
+    problems, terms = [], {}
+    try:
+        raw_terms = generate_json(TERMS_PROMPT.format(skus=", ".join(skus), contract=contract.text), model)["terms"]
+    except (ValueError, KeyError, TypeError) as exc:
+        raw_terms, problems = [], [f"model could not read the contract: {exc}"]
+    by_sku = {str(t.get("sku", "")).strip(): t for t in raw_terms if isinstance(t, dict)}
+    for sku in skus:
+        if sku not in company.skus:
+            continue
+        term, why = (_validated_term(sku, by_sku[sku], contract, company.skus[sku]["unit"])
+                     if sku in by_sku else (None, "not returned"))
+        if term is None:
+            info = company.skus[sku]
+            problems.append(f"{sku}: model's contract terms rejected ({why})")
+            term = Term(sku=sku, unit=info["unit"], clause=info["clause"],
+                        quote=contract.clauses.get(info["clause"], ""), unit_price=None)
+        terms[sku] = term
+    return terms, problems
 
 
 # ---------------------------------------------------------------- step 6: load evidence
@@ -348,31 +289,17 @@ class Evidence:
     terms_source: str = "rules"                     # "rules" or "model:<name>"
 
 
-def gather_evidence(invoice: Invoice, data_dir: Path = DATA_DIR, model: str | None = None,
-                    fallback: bool = True) -> Evidence:
+def gather_evidence(invoice: Invoice, data_dir: Path = DATA_DIR, model: str | None = None) -> Evidence:
     """Steps 4-6 for one invoice. Raises EvidenceError only if the vendor is unknown.
 
-    model: read the contract with the local model (validated, with retries); None uses the
-    rule-based reader. fallback: for SKUs the model still gets wrong, use the rule-based reader
-    and say so in terms_source; without it, those SKUs go to NEEDS_REVIEW.
+    model: read the contract with the local model (validated); None uses the rule-based reader.
     """
     company = load_company(invoice.vendor, data_dir)
     contract = read_contract(company)
     problems = []
-    source = f"model:{model}" if model else "rules"
     if model:
         terms, problems = cached_terms_llm(contract, company, model)
-        rejected = [s for s in company.skus if s not in terms]
-        if rejected and fallback:                  # model still rejected after retries: rules,
-            rules = extract_terms(contract, company)   # marked on the result, never silent
-            terms.update({s: rules[s] for s in rejected})
-            problems = []
-            source += f" (rules for {', '.join(rejected)})"
-        for s in rejected:
-            if s not in terms:
-                info = company.skus[s]
-                terms[s] = Term(sku=s, unit=info["unit"], clause=info["clause"],
-                                quote=contract.clauses.get(info["clause"], ""), unit_price=None)
+        terms, problems = dict(terms), list(problems)     # copies: the cache must not change
     else:
         terms = extract_terms(contract, company)
     po = load_po(company, invoice.po)
@@ -393,7 +320,8 @@ def gather_evidence(invoice: Invoice, data_dir: Path = DATA_DIR, model: str | No
             problems.append(f"{line.sku}: no price found in clause {terms[line.sku].clause}")
         if po and line.sku not in po_skus:
             problems.append(f"{line.sku}: not on {invoice.po}")
-    return Evidence(invoice, company, contract, terms, po, receipt, previous, problems, source)
+    return Evidence(invoice, company, contract, terms, po, receipt, previous, problems,
+                    f"model:{model}" if model else "rules")
 
 
 def main():

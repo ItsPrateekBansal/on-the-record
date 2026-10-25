@@ -59,32 +59,21 @@ def _call_model(text: str, model: str,
 
 
 def _not_in_text(data: dict, text: str) -> list[str]:
-    """Values the model returned that are not printed on the invoice (so it made them up).
-
-    On the line with the SKU, the quantity must be followed by the unit and then the unit price,
-    exactly as the model returned them. No unit printed there means unit must be null.
-    """
-    rows = [" ".join(r.split()) for r in text.splitlines()]
+    """Values the model returned that are not printed on the invoice (so it made them up)."""
+    flat = " ".join(text.split())
     problems = []
     for i, line in enumerate(data.get("lines") or []):
-        sku, unit = str(line.get("sku") or "").strip(), line.get("unit")
+        sku, unit = str(line.get("sku") or ""), line.get("unit")
+        if sku and sku not in flat:
+            problems.append(f"line {i}: sku {sku!r}")
+        if unit and str(unit) not in flat:
+            problems.append(f"line {i}: unit {unit!r}")
         try:
-            qty = float(str(line.get("qty")).replace(",", ""))
             price = float(str(line.get("unit_price")).replace("$", "").replace(",", ""))
+            if f"{price:,.2f}" not in flat:
+                problems.append(f"line {i}: unit_price {price}")
         except ValueError:
-            problems.append(f"line {i}: qty or unit_price not a number")
-            continue
-        row = next((r for r in rows if sku and sku in r), None)
-        if row is None:
-            problems.append(f"line {i}: sku {sku!r} not on the invoice")
-            continue
-        q = f"{int(qty):,}" if qty == int(qty) else f"{qty:g}"
-        # greedy ".*" first: the last quantity before the price (descriptions can contain numbers too)
-        m = re.search(rf".*(?<![\d.,]){re.escape(q)}\s+(.*?)\s*\$?{re.escape(f'{price:,.2f}')}", row)
-        if not m:
-            problems.append(f"line {i}: {sku} qty {q} / price {price:,.2f} not on its line")
-        elif (m.group(1).strip() or None) != (str(unit).strip() if unit else None):
-            problems.append(f"line {i}: {sku} unit {unit!r}, invoice says {m.group(1).strip() or None!r}")
+            problems.append(f"line {i}: unit_price {line.get('unit_price')!r}")
     return problems
 
 

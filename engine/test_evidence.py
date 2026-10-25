@@ -12,8 +12,6 @@ from pathlib import Path
 sys.path.insert(0, os.path.join(os.path.dirname(os.path.abspath(__file__)), ".."))
 from engine.evidence import (DATA_DIR, EvidenceError, _validated_term, extract_terms,  # noqa: E402
                              gather_evidence, load_company, load_transactions, read_contract)
-from engine import evidence  # noqa: E402
-from engine import llm  # noqa: E402
 from parser.invoice_parser import parse_invoice, parse_invoice_file  # noqa: E402
 
 PASSED = []
@@ -133,97 +131,6 @@ def test_model_terms_are_checked_against_the_contract():
             "unit": "box of 50", "units_per_box": 50, "volume_tier": None}
     term, why = _validated_term("DO-PEN", pens, delta, "box")       # priced per box: no conversion
     assert why is None and (term.unit, term.units_per_box) == ("box", None)
-
-
-
-# ---- the model path, with a fake model (no Ollama needed)
-DELTA_OK = [
-    {"sku": "DO-PPR", "clause": "2.1", "unit": "case", "unit_price": 45.0, "units_per_box": None, "volume_tier": None,
-     "quote": "Copy paper (SKU DO-PPR) is $45.00 per case of ten reams."},
-    {"sku": "DO-TNR", "clause": "2.2", "unit": "unit", "unit_price": 85.0, "units_per_box": None, "volume_tier": None,
-     "quote": "Black high-yield toner cartridges (SKU DO-TNR) are $85.00 each."},
-    {"sku": "DO-PEN", "clause": "2.3", "unit": "box", "unit_price": 9.5, "units_per_box": 50, "volume_tier": None,
-     "quote": "Ballpoint pens (SKU DO-PEN) are $9.50 per box of 50."},
-]
-
-
-class FakeModel:
-    """Plays back answers in order (the last one repeats) and records the prompts."""
-    def __init__(self, *answers):
-        self.answers, self.prompts = list(answers), []
-
-    def __call__(self, prompt, model, timeout=180):
-        self.prompts.append(prompt)
-        answer = self.answers.pop(0) if len(self.answers) > 1 else self.answers[0]
-        if isinstance(answer, Exception):
-            raise answer
-        return {"terms": answer}
-
-
-def with_fake(fake, fn):
-    real = llm.generate_json
-    llm.generate_json = fake
-    evidence._TERMS_CACHE.clear()
-    try:
-        return fn()
-    finally:
-        llm.generate_json = real
-        evidence._TERMS_CACHE.clear()
-
-
-def delta():
-    co = load_company("Delta Office Solutions")
-    return read_contract(co), co
-
-
-def test_model_formatting_differences_are_accepted():
-    messy = [dict(DELTA_OK[0], sku="DO-PPR (Copy paper)", clause="Clause 2.1", unit_price="$45.00",
-                  quote="\u201cCopy paper (SKU DO-PPR) is $45.00   per case of ten reams.\u201d")] + DELTA_OK[1:]
-    fake = FakeModel(messy)
-    terms, problems = with_fake(fake, lambda: evidence.extract_terms_llm(*delta(), "fake"))
-    assert problems == [] and terms["DO-PPR"].unit_price == 45.0 and len(fake.prompts) == 1
-
-
-def test_model_retry_with_feedback_fixes_a_bogus_tier():
-    bogus = [dict(DELTA_OK[0], volume_tier={"more_than_qty": 10, "unit_price": 45.0, "clause": "2.1"})] + DELTA_OK[1:]
-    fake = FakeModel(bogus, [DELTA_OK[0]])
-    terms, problems = with_fake(fake, lambda: evidence.extract_terms_llm(*delta(), "fake"))
-    assert problems == [] and terms["DO-PPR"].volume_tier is None
-    assert len(fake.prompts) == 2 and "DO-PPR: volume tier" in fake.prompts[1]
-    assert "One entry per SKU in this list: DO-PPR." in fake.prompts[1]      # only the rejected SKU again
-
-
-def test_model_malformed_answers_never_crash():
-    broken = [{"sku": "DO-PPR", "clause": None, "unit_price": "n/a", "volume_tier": {"more_than_qty": None}},
-              {"sku": "DO-TNR", "clause": "2.2", "quote": DELTA_OK[1]["quote"], "unit_price": 85, "units_per_box": "lots"},
-              "not a dict"]
-    fake = FakeModel(ValueError("no JSON"), broken)
-    terms, problems = with_fake(fake, lambda: evidence.extract_terms_llm(*delta(), "fake"))
-    assert terms == {} and len(problems) == 3 and "malformed" in problems[1], problems
-
-
-def test_model_cache_asks_only_for_rejected_skus():
-    bogus = [dict(DELTA_OK[0], unit_price=50.0)] + DELTA_OK[1:]
-    fake = FakeModel(bogus)                                     # DO-PPR is always wrong
-    def run():
-        ct, co = delta()
-        evidence.cached_terms_llm(ct, co, "fake")
-        before = len(fake.prompts)
-        terms, problems = evidence.cached_terms_llm(ct, co, "fake")
-        return terms, problems, fake.prompts[before:]
-    terms, problems, later = with_fake(fake, run)
-    assert set(terms) == {"DO-TNR", "DO-PEN"} and "DO-PPR" in problems[0]
-    assert later and all("One entry per SKU in this list: DO-PPR." in p for p in later)
-
-
-def test_model_fallback_is_marked_and_strict_mode_reviews():
-    inv = parse_invoice_file(DATA_DIR / "demo" / "live" / "04_delta_INV-D-3301.json")
-    always_wrong = [dict(DELTA_OK[0], unit_price=50.0)] + DELTA_OK[1:]
-    ev = with_fake(FakeModel(always_wrong), lambda: gather_evidence(inv, model="fake"))
-    assert ev.problems == [] and ev.terms["DO-PPR"].unit_price == 45.0
-    assert ev.terms_source == "model:fake (rules for DO-PPR)"
-    strict = with_fake(FakeModel(always_wrong), lambda: gather_evidence(inv, model="fake", fallback=False))
-    assert strict.terms["DO-PPR"].unit_price is None and any("DO-PPR" in p for p in strict.problems)
 
 
 if __name__ == "__main__":
