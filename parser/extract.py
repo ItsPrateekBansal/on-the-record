@@ -58,15 +58,42 @@ def _call_model(text: str, model: str,
     return json.loads(match.group(0))
 
 
+def _not_in_text(data: dict, text: str) -> list[str]:
+    """Values the model returned that are not printed on the invoice (so it made them up)."""
+    flat = " ".join(text.split())
+    problems = []
+    for i, line in enumerate(data.get("lines") or []):
+        sku, unit = str(line.get("sku") or ""), line.get("unit")
+        if sku and sku not in flat:
+            problems.append(f"line {i}: sku {sku!r}")
+        if unit and str(unit) not in flat:
+            problems.append(f"line {i}: unit {unit!r}")
+        try:
+            price = float(str(line.get("unit_price")).replace("$", "").replace(",", ""))
+            if f"{price:,.2f}" not in flat:
+                problems.append(f"line {i}: unit_price {price}")
+        except ValueError:
+            problems.append(f"line {i}: unit_price {line.get('unit_price')!r}")
+    return problems
+
+
 def extract_invoice(text: str, model: str) -> dict:
-    """Model -> dict, with one retry. Raises on failure, never guesses."""
+    """Model -> dict, with one retry. Raises on failure, never guesses.
+
+    Every SKU, unit and unit price the model returns must be printed on the invoice; if not, the
+    model invented it, and the extraction is retried (then rejected).
+    """
     last_exc = None
     for _ in range(2):
         try:
             data = _call_model(text, model)
             if isinstance(data, dict) and data.get("lines"):
-                return data
-            last_exc = ValueError(f"bad extraction: {str(data)[:200]!r}")
+                made_up = _not_in_text(data, text)
+                if not made_up:
+                    return data
+                last_exc = ValueError(f"not on the invoice: {', '.join(made_up)}")
+            else:
+                last_exc = ValueError(f"bad extraction: {str(data)[:200]!r}")
         except Exception as exc:
             last_exc = exc
     raise ValueError(f"extraction failed after retry: {last_exc}")

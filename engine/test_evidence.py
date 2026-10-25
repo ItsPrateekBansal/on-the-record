@@ -126,6 +126,11 @@ def test_model_terms_are_checked_against_the_contract():
                            ({"volume_tier": {"more_than_qty": 500, "unit_price": 11.40, "clause": "3.2"}}, "tier")]:
         term, why = _validated_term("BX-200", good | change, c)
         assert term is None and expect in why, (change, why)
+    delta = read_contract(load_company("Delta Office Solutions"))
+    pens = {"clause": "2.3", "quote": "Ballpoint pens (SKU DO-PEN) are $9.50 per box of 50.", "unit_price": 9.5,
+            "unit": "box of 50", "units_per_box": 50, "volume_tier": None}
+    term, why = _validated_term("DO-PEN", pens, delta, "box")       # priced per box: no conversion
+    assert why is None and (term.unit, term.units_per_box) == ("box", None)
 
 
 if __name__ == "__main__":

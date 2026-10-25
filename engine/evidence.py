@@ -158,8 +158,12 @@ def _amount_in(amount, text: str) -> bool:
     return any(f"${v}" in text for v in (f"{amount:,.2f}", f"{amount:.2f}"))
 
 
-def _validated_term(sku: str, raw: dict, contract: Contract) -> tuple[Term | None, str | None]:
-    """A model term is used only if every value can be found in the contract text."""
+def _validated_term(sku: str, raw: dict, contract: Contract, unit: str | None = None) -> tuple[Term | None, str | None]:
+    """A model term is used only if every value can be found in the contract text.
+
+    unit: the unit the price is per, from companies/index.json (master data). The model's own
+    wording ("box of 50") is not used for it. A box size only matters when the price is per unit.
+    """
     clause = str(raw.get("clause", "")).strip()
     text = contract.clauses.get(clause)
     if text is None:
@@ -175,7 +179,8 @@ def _validated_term(sku: str, raw: dict, contract: Contract) -> tuple[Term | Non
         return None, "no unit price"
     if not _amount_in(price, text):
         return None, f"${price:.2f} is not written in clause {clause}"
-    box = raw.get("units_per_box")
+    unit = (unit or str(raw.get("unit") or "unit")).strip().lower()
+    box = raw.get("units_per_box") if unit in ("unit", "each") else None
     if box is not None and not re.search(rf"\b{int(box)}\b", text):
         return None, f"{box} units per box is not written in clause {clause}"
     tier = None
@@ -187,7 +192,7 @@ def _validated_term(sku: str, raw: dict, contract: Contract) -> tuple[Term | Non
                 and (f"{qty:,}" in ttext or str(qty) in ttext)):
             return None, f"volume tier {t} is not written in the contract"
         tier = (qty, float(t["unit_price"]), str(t["clause"]).strip())
-    return Term(sku=sku, unit=str(raw.get("unit") or "unit").strip().lower(), clause=clause, quote=text,
+    return Term(sku=sku, unit=unit, clause=clause, quote=text,
                 unit_price=price, volume_tier=tier, units_per_box=int(box) if box is not None else None), None
 
 
@@ -208,7 +213,8 @@ def extract_terms_llm(contract: Contract, company: Company, model: str, skus=Non
     for sku in skus:
         if sku not in company.skus:
             continue
-        term, why = _validated_term(sku, by_sku[sku], contract) if sku in by_sku else (None, "not returned")
+        term, why = (_validated_term(sku, by_sku[sku], contract, company.skus[sku]["unit"])
+                     if sku in by_sku else (None, "not returned"))
         if term is None:
             info = company.skus[sku]
             problems.append(f"{sku}: model's contract terms rejected ({why})")
