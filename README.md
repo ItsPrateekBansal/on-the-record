@@ -49,7 +49,7 @@ python3 demo_watch.py
 ```bash
 pip install -r scripts/requirements.txt
 python3 scripts/make_fake_data.py     # regenerates data/ and the answer key
-python3 scripts/send_invoices.py data/demo/live   # emails PDFs into Mailpit
+python3 scripts/drop_invoices.py data/demo/live   # invoices "arrive" in data/inbox/
 ```
 
 `data/expected_results.json` is the answer key: status, each layer, amount
@@ -74,7 +74,7 @@ demo_watch.py               runnable watcher + parser demo
 render_video.py             renders demo output as a terminal video
 demo/pipeline_demo.mp4      recorded demo (watcher + parser)
 scripts/make_fake_data.py   demo data generator + answer key
-scripts/send_invoices.py    emails demo invoices into Mailpit
+scripts/drop_invoices.py    drops demo invoices into the inbox, one by one
 data/                       demo invoices (PDF + JSON), companies/<vendor>/
                             (contract, POs, receipts, transactions), results/
 INVOICE_WATCHDOG_PLAN.md    full build plan (v3)

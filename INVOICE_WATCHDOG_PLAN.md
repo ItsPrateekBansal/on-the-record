@@ -79,7 +79,7 @@ Every invoice goes through three layers. Each check returns **PASS**, **FAIL** o
 When an invoice arrives, the agent gathers its own evidence. This is the team's pipeline:
 
 ```
-1. Email watcher        Mailpit → fetcher → data/inbox/            (watcher/inbox.py: done)
+1. Inbox watcher       a file landing in data/inbox/ = an invoice email arriving   (watcher/inbox.py: done)
 2. Parser               JSON today (parser/invoice_parser.py: done) → PDF later via the local model
 3. Load the company     companies/index.json → companies/<vendor>/
 4. Load the contract    the WHOLE contract.txt (about 1 page) into the local model,
@@ -116,7 +116,7 @@ AI interprets → Pydantic validates → Python decides → AI explains → huma
 
 Regenerate any time with `.venv/bin/python scripts/make_fake_data.py`. The script recomputes every expected result from the POs, receipts and contracts, and stops if its own answer key disagrees.
 
-### 3.1 Live demo (5 invoices, sent by email during the pitch)
+### 3.1 Live demo (5 invoices, dropped into the inbox during the pitch)
 
 | # | Supplier | Scenario | Transaction | Contract | History | At risk | Shows |
 | --- | --- | --- | --- | --- | --- | --- | --- |
@@ -175,11 +175,8 @@ data/
 ## Part 4: Architecture — one pipeline, one shared folder
 
 ```
-                   SUPPLIER
-                       │ invoice email
-                       ▼
-                    MAILPIT  (GB10 host)
-                       │ fetcher: python -m watchdog fetch
+         SUPPLIER INVOICE  (demo: scripts/drop_invoices.py)
+                       │ file lands in the AP inbox
                        ▼
                  data/inbox/
                        │
@@ -214,7 +211,7 @@ data/
                         outbox/  "ready to send"
 ```
 
-**Why this shape:** host services like Mailpit may not be reachable from inside the OpenShell sandbox. So the sandbox never talks to Mailpit. A small fetcher on the host moves attachments into the shared folder, and the agent only reads that folder.
+**No mail server.** A file landing in `data/inbox/` stands for an invoice email arriving. In production this folder is fed by the AP mailbox; for the demo, `scripts/drop_invoices.py` drops the invoices in one by one. The sandbox only needs the shared folder, not a mail service.
 
 **Decide in the first hour (preflight, Part 10):**
 
@@ -237,7 +234,7 @@ drafter/                  B: explanation + dispute draft (local model)
 dashboard/app.py          C: evidence screen, Approve, Verify
 audit/                    C: hash-chained log
 skills/                   A: audit-invoices, daily-summary (SKILL.md)
-scripts/                  make_fake_data.py, send_invoices.py
+scripts/                  make_fake_data.py, drop_invoices.py
 data/                     companies/<vendor>/ (contract, POs, receipts, transactions), demo/, results/, expected_results.json
 ```
 
@@ -249,11 +246,11 @@ The watcher reads `.json` today. Until PDF extraction with the local model works
 
 | Person | Role | Owns |
 | --- | --- | --- |
-| **A** | Platform + security | NemoClaw/OpenClaw/OpenShell install, Ollama, Slack, network policy, heartbeat, `audit-invoices` and `daily-summary` skills, Mailpit + `watchdog fetch`, **blocked-egress demo**, **wifi-off run** |
+| **A** | Platform + security | NemoClaw/OpenClaw/OpenShell install, Ollama, Slack, network policy, heartbeat, `audit-invoices` and `daily-summary` skills, **blocked-egress demo**, **wifi-off run** |
 | **B** | Brain | `watchdog scan`: extraction (model → Pydantic + 1 retry), evidence retrieval (PO, receipt, contract, previous transactions), the three layers of checks, writing to `results/` and `transactions/`, unit conversion, NEEDS_REVIEW path, explanations and dispute drafts, `watchdog selftest` |
 | **C** | Screens + story | Streamlit evidence screen, Approve button, hash-chained audit log + Verify, morning summary numbers, then **pitch, demo script, backup video, README, submission** |
 
-**Already done (no one needs to build these):** the fake data set, the answer key, and `scripts/send_invoices.py` (emails PDFs into Mailpit).
+**Already done (no one needs to build these):** the fake data set, the answer key, and `scripts/drop_invoices.py` (drops demo invoices into `data/inbox/` one by one).
 
 **Handoffs:**
 
@@ -295,7 +292,7 @@ The clause text comes from `evidence.clauses` in the result, quoted word for wor
 
 **Everyone (20 min):** this plan's Parts 1–3, and the [NemoClaw Quickstart](https://docs.nvidia.com/nemoclaw/latest/get-started/quickstart.html).
 
-**Person A:** NemoClaw Quickstart and its DGX Spark guide (GB10 is the same chip); the [GB10 install guide](https://ai-muninn.com/en/blog/nemoclaw-install-gx10-from-scratch) (third-party: Node 22, harmless exit code 243, `sudo npm link`, the cgroup v2 Docker fix, OpenShell aarch64 tar.gz); OpenClaw skills (`SKILL.md`) and heartbeat/cron; OpenShell policy tiers and `nemoclaw <name> policy add`; sharing a folder with the sandbox; Slack Socket Mode; Mailpit (SMTP 1025, web 8025).
+**Person A:** NemoClaw Quickstart and its DGX Spark guide (GB10 is the same chip); the [GB10 install guide](https://ai-muninn.com/en/blog/nemoclaw-install-gx10-from-scratch) (third-party: Node 22, harmless exit code 243, `sudo npm link`, the cgroup v2 Docker fix, OpenShell aarch64 tar.gz); OpenClaw skills (`SKILL.md`) and heartbeat/cron; OpenShell policy tiers and `nemoclaw <name> policy add`; sharing a folder with the sandbox; Slack Socket Mode.
 
 **Person B:** pdfplumber; Pydantic models for `Invoice`, `LineItem`, `ContractTerm`, `CheckResult`; asking Ollama for JSON and validating it; read `make_fake_data.py`'s `audit()` function: it is the reference logic for `checks.py`.
 
@@ -312,7 +309,6 @@ The clause text comes from `evidence.clauses` in the result, quoted word for wor
 | Project folder `~/Desktop/invoice-watchdog` with Python 3.12 venv and 9 packages | Done |
 | Fake data set v3 + answer key | Done |
 | ARM64 Linux packages for the GB10, `wheels-gb10-aarch64/` (125 MB) | Done |
-| Mailpit image for ARM64, `mailpit-arm64.tar` (13 MB) | Done |
 
 **Finding from the laptop test:** with `qwen3.5:9b`, Ollama's strict JSON `format` option returns "structured output is unavailable." A plain "return only JSON" prompt worked. So the code must not depend on `format`. Use prompt + Pydantic check + 1 retry, and test `format` again on the GB10 models.
 
@@ -352,13 +348,6 @@ curl -fsSL https://www.nvidia.com/nemoclaw.sh | \
 
 **Check:** `nemoclaw watchdog status` (expect Ready), `nemoclaw watchdog logs --follow`, then say "hi" to the bot in `#ap-watchdog`.
 
-**Mailpit on the GB10 host:**
-
-```bash
-docker load -i mailpit-arm64.tar
-docker run -d --name mailpit -p 8025:8025 -p 1025:1025 axllent/mailpit
-```
-
 ---
 
 ## Part 10: Preflight test (first hour on the GB10, A + B)
@@ -382,7 +371,6 @@ Plumbing:
 | Sandbox reaches model | The skill gets an answer from Ollama |
 | Sandbox reaches data | The skill runs `python -m watchdog scan` and reads `data/inbox/` |
 | Dashboard reaches results | The dashboard sees rows the skill wrote |
-| Mailpit to inbox | An email sent to Mailpit appears as a PDF in `data/inbox/` |
 | Heartbeat | The agent runs the skill by itself within 1 minute |
 | Egress blocked | A request to a public website from the sandbox is refused |
 
@@ -394,10 +382,10 @@ Plumbing:
 
 | Time | A (Platform) | B (Brain) | C (Screens + story) | Checkpoint |
 | --- | --- | --- | --- | --- |
-| 10:00–11:00 | NemoClaw + Slack, policy, Mailpit | Model preflight | SQLite tables, dashboard shell reading `expected_results.json` | Model chosen, bot says hi |
-| 11:00–13:00 | `watchdog fetch`, skill runs `scan`, Slack alert | Extraction + Pydantic, retrieval, 3 layers, `selftest` | Evidence screen for Bolt, audit log | `selftest` on the 5 live invoices: Bolt contract FAIL with PO PASS, $3,182 total |
+| 10:00–11:00 | NemoClaw + Slack, policy | Model preflight | SQLite tables, dashboard shell reading `expected_results.json` | Model chosen, bot says hi |
+| 11:00–13:00 | Skill runs `scan` on new inbox files, Slack alert | Extraction + Pydantic, retrieval, 3 layers, `selftest` | Evidence screen for Bolt, audit log | `selftest` on the 5 live invoices: Bolt contract FAIL with PO PASS, $3,182 total |
 | 13:00–15:00 | Blocked-egress demo | NEEDS_REVIEW path, dispute drafts | Approve → outbox, Verify button, review card | Layer 1 end to end |
-| 15:00–16:30 | Heartbeat, `daily-summary` skill | Evergreen boxes, overnight selftest (14) | Pitch + demo script, first full practice | Email → Slack alert with nobody typing; summary "2 failed, $1,280, 1 review" |
+| 15:00–16:30 | Heartbeat, `daily-summary` skill | Evergreen boxes, overnight selftest (14) | Pitch + demo script, first full practice | Invoice dropped in inbox → Slack alert with nobody typing; summary "2 failed, $1,280, 1 review" |
 | 16:30–17:00 | Wifi-off run | Bug fixes | Backup video recording | Evergreen caught at $120 with wifi off |
 | 17:00 | **Code freeze.** Only bug fixes. | | | |
 | 17:00–17:45 | 3 full demo runs together, README, submission | | | Submitted by 17:45 |
@@ -411,7 +399,7 @@ If something blocks you for more than 30 minutes, ask a mentor right away.
 
 1. **Problem (15 s):** "Companies pay thousands of invoices. Their ERP checks that the invoice matches the PO. Nobody checks that the PO matches the contract."
 2. **Overnight (15 s):** the morning Slack summary: "Audited 14 invoices overnight. 2 failed, $1,280 at risk. 1 needs human review." Nobody asked it to.
-3. **Live (30 s):** email the 5 live invoices to Mailpit. The agent picks them up by itself. Four alerts appear; the clean one passes.
+3. **Live (30 s):** run `drop_invoices.py data/demo/live`: "invoices are arriving in the AP inbox." The agent picks them up by itself. Four alerts appear; the clean one passes.
 4. **The wow, Bolt (50 s):** open the evidence screen. "The invoice matches the PO perfectly: PASS. But Watchdog checks the agreement behind the transaction." Contract FAIL, clause 3.1 quoted, $720.
 5. **Baseline (5 s):** point at the Coastal ($1,200), Acme ($360) and Delta duplicate ($902) alerts: "Watchdog runs the standard checks too, so it can replace a manual audit, not just add one more tool." Don't open them; ERPs can catch these, so they are not the story. If a judge says "my ERP does that": "Right, we don't compete with that. Our point is the invoice your ERP approves, like Bolt."
 6. **Honest uncertainty (10 s):** the carton invoice: "The contract doesn't define a carton, so it asks a person instead of guessing."
@@ -438,7 +426,6 @@ If something blocks you for more than 30 minutes, ask a mentor right away.
 | Pydantic | Validates AI output before it reaches financial logic |
 | Python | Makes every financial decision and does every calculation |
 | SQLite + hash chain | Local, tamper-evident audit history |
-| Mailpit | Real email intake, simulated suppliers |
 | Slack | Surfaces only exceptions; finance doesn't watch another dashboard |
 | Streamlit | Evidence, explanation, dispute draft, human approval |
 
@@ -465,7 +452,6 @@ If something blocks you for more than 30 minutes, ask a mentor right away.
 | Model invents a carton size | Python only accepts conversions found in the clause text; otherwise NEEDS_REVIEW. |
 | Clause not quoted word for word | Python checks the quoted text appears in contract.txt; if not, find the clause by its number. |
 | Model too slow | Faster model from preflight. |
-| Mailpit fetch breaks | Drop PDFs straight into `data/inbox/`; the agent still picks them up. |
 | Heartbeat unreliable | Trigger the skill from Slack ("check inbox") for the live part. |
 | Slack fails during demo | The dashboard alone, then the backup video. |
 | Wifi-off breaks something | Practice it twice before 17:00; if flaky, show it in the backup video. |
@@ -475,12 +461,11 @@ If something blocks you for more than 30 minutes, ask a mentor right away.
 
 ## Part 16: Bring + morning checklist
 
-**Bring:** laptops, chargers, USB-C SSD (models, `invoice-watchdog`, wheels, Mailpit image), HDMI and USB-C adapters, phone with Slack, tokens in a password manager, snacks and water.
+**Bring:** laptops, chargers, USB-C SSD (models, `invoice-watchdog`, wheels), HDMI and USB-C adapters, phone with Slack, tokens in a password manager, snacks and water.
 
 - [ ] Ask organizers about pre-written code and team size
 - [x] Docker, Node, Python, uv, Git, Ollama on Ananya's laptop
 - [x] Python packages + ARM64 wheels downloaded
-- [x] Mailpit ARM64 image saved
 - [x] Fake data set v3 (Bolt PO at $13.44, receipts, carton review case, layered answer key)
 - [ ] Find which teammate has Nemotron Super and Qwen 32B; copy to SSD
 - [ ] Copy `invoice-watchdog` to SSD
