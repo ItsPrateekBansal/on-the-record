@@ -18,7 +18,8 @@ at runtime.
    number, PO, total, line items). Tolerates messy real-world formats
    (`"$7,800.00"`, string quantities, aliased keys) and warns instead of
    failing on a missing total or a total that doesn't match its lines.
-3. **Audit engine** *(in progress)* — three layers, each check PASS, FAIL
+3. **Audit engine** — loads the company, its whole contract, the PO, the
+   goods receipt and previous transactions, then runs three layers, each check PASS, FAIL
    or NEEDS_REVIEW:
    - *Transaction:* invoice vs PO and goods receipt (price, quantity).
    - *Commercial:* invoice vs the **contract** (price, volume tiers, units
@@ -28,26 +29,34 @@ at runtime.
      that over-bill a partly billed PO, and duplicates of paid invoices.
    AI reads the documents, Python makes every decision, and anything the
    contract doesn't define (e.g. "carton") goes to a person.
-4. **Dispute drafter + dashboard + audit trail** *(in progress)* — a
-   dispute email draft quoting invoice line vs. contract clause for every
-   catch, a running $ saved counter, and a hash-chained audit trail.
-   A human approves before anything is sent — the agent proposes, the
-   human disposes.
+4. **Report** — every invoice is saved to its company's `transactions/`,
+   the verdict goes to `results/success|discrepancy|needs_review/`, a short
+   alert (no prices) to `alerts.jsonl`, and every step to a hash-chained
+   audit log. Explanations and dispute drafts are templates for now; the
+   local model (Nemotron / Qwen) will rewrite them later.
+5. **Dashboard + approval** — the evidence screen: PO check next to the
+   contract check, the clause quoted, the math, the dispute draft. Only a
+   person clicking Approve moves a dispute to `outbox/`, "ready to send";
+   nothing is ever sent by the agent.
 
 ## Run it
 
 ```bash
-# Watch an inbox folder (drops a file in = an email arriving)
-python3 watcher/inbox.py --dir ./data/inbox
+pip install -r requirements.txt             # only for the dashboard, PDFs and the data generator
 
-# Screen-recordable end-to-end demo: watcher + parser, ~30 seconds
-python3 demo_watch.py
+python3 -m engine.pipeline --watch          # terminal 1: audits invoices as they land in data/inbox/
+streamlit run dashboard/app.py              # terminal 2: evidence screen + Approve
+python3 scripts/drop_invoices.py data/demo/live   # terminal 3: invoices "arrive" one by one
+
+python3 scripts/reset_demo.py               # before every demo run: back to a clean state
 ```
+
+`--once` audits what is in the inbox and stops. PDF invoices need the local
+model: `--model qwen3.5:9b` (or the Nemotron name from `ollama list`).
 
 ## Demo data
 
 ```bash
-pip install -r scripts/requirements.txt
 python3 scripts/make_fake_data.py     # regenerates data/ and the answer key
 python3 scripts/drop_invoices.py data/demo/live   # invoices "arrive" in data/inbox/
 ```
@@ -61,6 +70,9 @@ $3,182 at risk, led by Bolt (PO match passes, contract check fails, $720).
 ```bash
 python3 watcher/test_inbox.py   # watcher: stability, retries, survival
 python3 parser/test_parser.py   # parser: formats, warnings, integration
+python3 engine/test_evidence.py # load company, contract, evidence
+python3 engine/test_pipeline.py # checks, reporting, audit log, approval
+python3 -m engine.pipeline --selftest   # all 20 demo invoices vs the answer key
 ```
 
 ## Layout
@@ -70,11 +82,20 @@ watcher/inbox.py            AP inbox watcher (stdlib only)
 watcher/test_inbox.py       watcher tests
 parser/invoice_parser.py    invoice parser + validation
 parser/test_parser.py       parser tests + watcher integration
+parser/extract.py           PDF -> JSON with the local model (Ollama)
+engine/evidence.py          steps 4-6: company, contract terms, PO, receipt, history
+engine/checks.py            step 7: the three layers (plain Python)
+engine/report.py            steps 8-11: transactions, results, explanation, alert
+engine/audit_log.py         hash-chained audit log + verify
+engine/approval.py          step 13: approve dispute / mark correct
+engine/pipeline.py          runs it all: --watch, --once, --selftest
+dashboard/app.py            step 12: Streamlit evidence screen
 demo_watch.py               runnable watcher + parser demo
 render_video.py             renders demo output as a terminal video
 demo/pipeline_demo.mp4      recorded demo (watcher + parser)
 scripts/make_fake_data.py   demo data generator + answer key
 scripts/drop_invoices.py    drops demo invoices into the inbox, one by one
+scripts/reset_demo.py       clears results, logs and audited transactions
 data/                       demo invoices (PDF + JSON), companies/<vendor>/
                             (contract, POs, receipts, transactions), results/
 ```

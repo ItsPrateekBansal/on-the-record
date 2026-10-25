@@ -99,8 +99,8 @@ def test_acme_history_found():
 
 def test_invoice_never_matches_itself():
     co = load_company("Delta Office Solutions")
-    assert [p.invoice_no for p in load_transactions(co, "PO-7695")] == ["INV-D-3270"]
-    assert load_transactions(co, "PO-7695", exclude_invoice="INV-D-3270") == []
+    assert "INV-D-3270" in [p.invoice_no for p in load_transactions(co, "PO-7695")]
+    assert "INV-D-3270" not in [p.invoice_no for p in load_transactions(co, "PO-7695", exclude_invoice="INV-D-3270")]
 
 
 def test_missing_po_is_a_problem_not_a_crash():

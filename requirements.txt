@@ -1,0 +1,4 @@
+# engine, watcher and parser are stdlib only; these are for the extras
+streamlit      # dashboard/app.py
+pdfplumber     # parser/extract.py (PDF invoices)
+reportlab      # scripts/make_fake_data.py

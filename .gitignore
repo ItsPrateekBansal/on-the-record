@@ -8,3 +8,7 @@ data/inbox/*
 data/outbox/*
 !data/outbox/.gitkeep
 data/watchdog.db
+data/processed/
+data/results/*/*.json
+data/audit_log.jsonl
+data/alerts.jsonl
