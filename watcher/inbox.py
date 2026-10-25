@@ -82,6 +82,18 @@ class InboxWatcher:
             self._handle(path)
 
     def _handle(self, path):
+        # Non-JSON files (e.g. PDFs) are passed through untouched: the
+        # callback reads them itself (the pipeline extracts PDFs with the
+        # local model). JSON files are parsed here as before.
+        if path.suffix.lower() != ".json":
+            self._failed.pop(path.name, None)
+            try:
+                self.on_invoice(path, None)
+            except Exception as exc:
+                self.on_error(path, exc)
+                return
+            self._processed.add(path.name)
+            return
         try:
             with open(path, "r", encoding="utf-8") as f:
                 invoice = json.load(f)

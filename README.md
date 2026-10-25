@@ -44,6 +44,15 @@ at runtime.
 ```bash
 pip install -r requirements.txt             # only for the dashboard, PDFs and the data generator
 
+python3 demo.py                             # ONE COMMAND: resets, starts the agent, drops the
+                                            # overnight batch (morning summary), then the live
+                                            # batch one by one, then the wifi-off invoice, and
+                                            # prints totals + audit verification at the end
+```
+
+Or run the pieces by hand across three terminals:
+
+```bash
 python3 -m engine.pipeline --watch          # terminal 1: audits invoices as they land in data/inbox/
 streamlit run dashboard/app.py              # terminal 2: evidence screen + Approve
 python3 scripts/drop_invoices.py data/demo/live   # terminal 3: invoices "arrive" one by one
@@ -92,6 +101,7 @@ watcher/test_inbox.py       watcher tests
 parser/invoice_parser.py    invoice parser + validation
 parser/test_parser.py       parser tests + watcher integration
 parser/extract.py           PDF -> JSON with the local model (Ollama)
+demo.py                     one-command demo: reset, agent watches, batches arrive, totals
 engine/evidence.py          steps 4-6: company, contract terms, PO, receipt, history
 engine/checks.py            step 7: the three layers (plain Python)
 engine/report.py            steps 8-11: transactions, results, explanation, alert

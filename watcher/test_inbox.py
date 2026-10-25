@@ -53,6 +53,9 @@ def main():
             with open(p3, "w") as f:
                 json.dump({"vendor": "Nova", "total": 430}, f)
 
+            # 6. PDF passthrough: handed to the callback untouched (the
+            # pipeline extracts it with the local model); needs extensions
+            # enabled, so it is covered by the second watcher below.
             deadline = time.time() + 5
             while len(received) < 3 and time.time() < deadline:
                 time.sleep(0.1)
@@ -70,6 +73,28 @@ def main():
     print("PASS: 3 invoices received, slow write whole + once, "
           "txt ignored, bad JSON reported once, watcher survived.")
     print("Received:", [(p.name, inv) for p, inv in received])
+
+    # PDF passthrough, with .pdf in extensions.
+    pdf_received = []
+    with tempfile.TemporaryDirectory() as tmp:
+        w = InboxWatcher(tmp,
+                         lambda p, inv: pdf_received.append((p, inv)),
+                         poll_interval=0.2, stable_polls=2,
+                         extensions=(".json", ".pdf"))
+        t = threading.Thread(target=w.run, daemon=True)
+        t.start()
+        try:
+            with open(os.path.join(tmp, "inv.pdf"), "wb") as f:
+                f.write(b"%PDF-1.4 fake")
+            deadline = time.time() + 5
+            while not pdf_received and time.time() < deadline:
+                time.sleep(0.1)
+        finally:
+            w.stop()
+            t.join(timeout=2)
+    assert len(pdf_received) == 1 and pdf_received[0][0].name == "inv.pdf" \
+        and pdf_received[0][1] is None, pdf_received
+    print("PASS: PDF passed through untouched (callback payload None).")
 
 
 if __name__ == "__main__":
