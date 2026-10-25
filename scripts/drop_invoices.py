@@ -21,7 +21,10 @@ def main():
     ap.add_argument("--delay", type=float, default=3.0, help="seconds between invoices (for a live demo feel)")
     args = ap.parse_args()
 
-    files = sorted(Path(args.folder).glob("*.pdf" if args.pdf else "*.json"))
+    folder = Path(args.folder)
+    if not folder.is_dir():                        # also works when run from outside the repo root
+        folder = INBOX.parent.parent / args.folder
+    files = sorted(folder.glob("*.pdf" if args.pdf else "*.json"))
     if not files:
         raise SystemExit(f"No invoices in {args.folder}")
     INBOX.mkdir(parents=True, exist_ok=True)
