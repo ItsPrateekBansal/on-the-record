@@ -67,8 +67,10 @@ def main() -> int:
     ap.add_argument("--pdf", action="store_true",
                     help="drop the PDF twins instead of JSON (needs --model)")
     ap.add_argument("--slack", action="store_true",
-                    help="post the morning summary and each phase's alerts to Slack "
-                         "(needs SLACK_BOT_TOKEN + SLACK_CHANNEL; see docs/SLACK_SETUP.md)")
+                    help="accepted for compatibility; Slack posting is now always on "
+                         "when configured (see docs/SLACK_SETUP.md)")
+    ap.add_argument("--no-slack", action="store_true",
+                    help="do not post to Slack even when configured")
     ap.add_argument("--data", default=str(DATA), help="data folder")
     args = ap.parse_args()
     data_dir, model = Path(args.data), model_name(args.model)
@@ -78,14 +80,14 @@ def main() -> int:
     exts = (".json", ".pdf") if model else (".json",)
     suffix = ".pdf" if args.pdf else ".json"
 
-    slack_on = False
-    if args.slack:
+    slack_on = not args.no_slack
+    if slack_on:
         from engine import slack
         try:
             slack.config()
-            slack_on = True
         except slack.NotConfigured as exc:
             print(f"[slack] disabled: {exc}")
+            slack_on = False
 
     def slack_flush(note):
         if not slack_on:

@@ -70,13 +70,18 @@ SLACK_DRY_RUN=1 python3 -m engine.slack test
 
 ## 4. Run it live
 
+Slack posting is on by default whenever the two variables are set — no
+flag needed:
+
 ```bash
-python3 demo.py --slack                       # demo: summary + alerts as phases land
-python3 -m engine.pipeline --watch --slack   # always-on: each catch posts as it lands
+python3 demo.py                             # demo: summary + alerts as phases land
+python3 -m engine.pipeline --watch         # always-on: each catch posts as it lands
 ```
 
-Without `--slack`, or without the two variables set, everything works
-exactly as before and alerts simply queue in `data/alerts.jsonl`.
+`--no-slack` turns posting off even when configured. Without the two
+variables set, everything works exactly as before and alerts simply
+queue in `data/alerts.jsonl`. (`--slack` is still accepted; it changes
+nothing.)
 
 ## 5. Wifi off
 

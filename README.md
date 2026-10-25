@@ -74,10 +74,11 @@ posts the queued alerts from `python3 -m engine.alerts pending`. Setup: `docs/NE
 
 **Slack:** the pipeline queues short alerts (no prices, no clauses) in `alerts.jsonl`;
 post them with `python3 -m engine.slack pending`, the morning summary with
-`python3 -m engine.slack summary`, or post live with `python3 demo.py --slack` /
-`python3 -m engine.pipeline --watch --slack`. Setup: `docs/SLACK_SETUP.md`.
-Tokens come from the environment only (`SLACK_BOT_TOKEN`, `SLACK_CHANNEL`)
-and are never committed.
+`python3 -m engine.slack summary`, or post live by default when configured
+with `python3 demo.py` / `python3 -m engine.pipeline --watch`
+(`--no-slack` disables). Setup: `docs/SLACK_SETUP.md`.
+Tokens come from the environment or a gitignored repo-root `.env`
+(`SLACK_BOT_TOKEN`, `SLACK_CHANNEL`) and are never committed.
 
 ## Demo data
 

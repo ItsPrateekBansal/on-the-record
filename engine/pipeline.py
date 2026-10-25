@@ -2,7 +2,8 @@
 
     python3 -m engine.pipeline --watch      # watch data/inbox/ and audit invoices as they arrive
     python3 -m engine.pipeline --once       # audit everything in data/inbox/ now, then stop
-    python3 -m engine.pipeline --watch --slack   # also post each catch to Slack as it lands
+    Slack posts by default when SLACK_BOT_TOKEN + SLACK_CHANNEL are set
+    (see docs/SLACK_SETUP.md); --no-slack turns it off.
     python3 -m engine.pipeline --selftest   # audit every demo invoice in a scratch copy of data/
                                             # and compare with data/expected_results.json
 
@@ -110,7 +111,7 @@ def _slack_flush(data_dir):
     try:
         posted, failed = slack.post_pending(data_dir)
     except slack.NotConfigured:
-        print("[slack] not configured (SLACK_BOT_TOKEN / SLACK_CHANNEL); alerts stay queued")
+        return  # startup already warned once; stay silent per invoice
     except slack.SlackError as exc:
         print(f"[slack] post failed ({exc}); alerts stay queued")
     else:
@@ -172,19 +173,29 @@ def main():
     ap.add_argument("--model", help="local Ollama model (default: $WATCHDOG_MODEL). Without one: JSON "
                                     "invoices only, rule-based contract reading, template explanations")
     ap.add_argument("--slack", action="store_true",
-                    help="post queued alerts to Slack after each audit (needs SLACK_BOT_TOKEN + "
-                         "SLACK_CHANNEL; see docs/SLACK_SETUP.md)")
+                    help="accepted for compatibility; Slack posting is now always on "
+                         "when configured (see docs/SLACK_SETUP.md)")
+    ap.add_argument("--no-slack", action="store_true",
+                    help="do not post to Slack even when configured")
     args = ap.parse_args()
     data_dir, model = Path(args.data), model_name(args.model)
     if args.selftest:
         sys.exit(0 if selftest(data_dir, model) else 1)
+    slack_on = not args.no_slack
+    if slack_on:
+        from engine import slack
+        try:
+            slack.config()
+        except slack.NotConfigured as exc:
+            print(f"[slack] disabled: {exc}")
+            slack_on = False
     print(f"model: {model or 'none (rules + templates)'}")
     if args.once:
         run_once(data_dir, model)
-        if args.slack:
+        if slack_on:
             _slack_flush(data_dir)
     else:
-        watch(data_dir, model, slack=args.slack)
+        watch(data_dir, model, slack=slack_on)
 
 
 if __name__ == "__main__":
