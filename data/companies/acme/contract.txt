@@ -1,0 +1,21 @@
+MASTER SUPPLY AGREEMENT — Acme Packaging Co.
+
+This Agreement is made on January 1, 2026 between Harbor Ridge Manufacturing, Inc. ("Buyer") and Acme Packaging Co., 88 Carton Ave, Stockton, CA 95203 ("Supplier").
+
+1. Scope and Term
+1.1 This Master Supply Agreement (the "Agreement") governs all purchases by Buyer from Supplier between January 1, 2026 and December 31, 2026.
+1.2 Each purchase is made by a written purchase order ("PO") issued by Buyer. Supplier shall reference the PO number on every invoice.
+
+2. Pricing
+2.1 The unit price for SKU AC-1212 (corrugated shipping box 12x12x8) shall be $1.20 per unit.
+2.2 The unit price for SKU AC-TAPE (packing tape roll) shall be $3.40 per roll.
+2.3 The unit price for SKU AC-WRAP (stretch wrap roll) shall be $18.75 per roll.
+2.4 All prices in this Section 2 are fixed from January 1, 2026 through December 31, 2026 and include delivery to Buyer's Oakland facility.
+
+3. Invoicing and Payment
+3.1 Payment terms are net thirty (30) days from receipt of a correct invoice.
+3.2 Supplier shall issue one invoice per shipment and shall not invoice the same goods more than once. A re-issued invoice must clearly state that it replaces an earlier invoice.
+3.3 Buyer may dispute any invoice amount within thirty (30) days of receipt by written notice to Supplier. Undisputed amounts shall be paid on time.
+
+4. Confidentiality
+4.1 The prices in this Agreement are confidential information of both parties and shall not be disclosed to any third party.

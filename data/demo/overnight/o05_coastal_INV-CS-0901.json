@@ -1,0 +1,16 @@
+{
+  "invoice_number": "INV-CS-0901",
+  "vendor": "Coastal Supply Co.",
+  "po_number": "PO-7764",
+  "date": "2026-10-21",
+  "total": 4500.0,
+  "lines": [
+    {
+      "sku": "CS-CRT",
+      "description": "Stackable plastic crate, 60 L",
+      "qty": 200,
+      "unit": null,
+      "unit_price": 22.5
+    }
+  ]
+}

@@ -1,0 +1,13 @@
+{
+  "receipt_id": "GR-4424",
+  "po_number": "PO-7773",
+  "vendor": "Delta Office Solutions",
+  "date": "2026-10-23",
+  "lines": [
+    {
+      "sku": "DO-PPR",
+      "qty_received": 25,
+      "unit": "case"
+    }
+  ]
+}

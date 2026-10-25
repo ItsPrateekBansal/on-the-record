@@ -1,0 +1,23 @@
+{
+  "invoice_number": "INV-1048",
+  "vendor": "Acme Packaging Co.",
+  "po_number": "PO-7760",
+  "date": "2026-10-20",
+  "total": 1987.5,
+  "lines": [
+    {
+      "sku": "AC-1212",
+      "description": "Corrugated shipping box 12x12x8",
+      "qty": 1500,
+      "unit": null,
+      "unit_price": 1.2
+    },
+    {
+      "sku": "AC-WRAP",
+      "description": "Stretch wrap roll, 18 in x 1500 ft",
+      "qty": 10,
+      "unit": null,
+      "unit_price": 18.75
+    }
+  ]
+}

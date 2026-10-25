@@ -1,0 +1,23 @@
+{
+  "invoice_number": "INV-B-5511",
+  "vendor": "Bolt Industrial Supply LLC",
+  "po_number": "PO-7772",
+  "date": "2026-10-23",
+  "total": 2900.0,
+  "lines": [
+    {
+      "sku": "WS-016",
+      "description": "Flat washer M16, stainless",
+      "qty": 2000,
+      "unit": null,
+      "unit_price": 0.85
+    },
+    {
+      "sku": "NT-080",
+      "description": "Nylon lock nut M16",
+      "qty": 500,
+      "unit": null,
+      "unit_price": 2.4
+    }
+  ]
+}

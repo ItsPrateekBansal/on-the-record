@@ -1,0 +1,16 @@
+{
+  "invoice_number": "INV-CS-0912",
+  "vendor": "Coastal Supply Co.",
+  "po_number": "PO-7781",
+  "date": "2026-10-23",
+  "total": 6000.0,
+  "lines": [
+    {
+      "sku": "CS-PAL",
+      "description": "Heavy-duty wooden pallet 48x40",
+      "qty": 100,
+      "unit": null,
+      "unit_price": 60.0
+    }
+  ]
+}

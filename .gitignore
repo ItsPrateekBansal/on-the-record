@@ -3,3 +3,8 @@ __pycache__/
 demo_inbox/
 frames/
 demo_output.txt
+data/inbox/*
+!data/inbox/.gitkeep
+data/outbox/*
+!data/outbox/.gitkeep
+data/watchdog.db

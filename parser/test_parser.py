@@ -82,6 +82,17 @@ def test_aliases():
         "INV-9", "Nova", "PO-9", 80)
 
 
+def test_unit_of_measure():
+    inv = parse_invoice({
+        "invoice_number": "INV-EV-208", "vendor": "Evergreen Parts Inc.",
+        "po_number": "PO-7802", "total": 1500,
+        "lines": [{"sku": "BR-6204", "qty": 10, "unit_price": 150, "uom": "box (12)"},
+                  {"sku": "GR-500", "qty": 4, "unit_price": 0}],
+    })
+    assert inv.lines[0].unit == "box (12)"
+    assert inv.lines[1].unit is None
+
+
 def test_missing_invoice_no():
     try:
         parse_invoice({"vendor": "V", "lines": [

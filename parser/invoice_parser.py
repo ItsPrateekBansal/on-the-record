@@ -28,6 +28,7 @@ class Line:
     qty: float
     unit_price: float
     description: str = ""
+    unit: str | None = None  # e.g. "box (12)"; None means the contract's own unit
 
     @property
     def line_total(self) -> float:
@@ -60,6 +61,7 @@ _LINE_ALIASES = {
     "qty": ("qty", "quantity", "count"),
     "unit_price": ("unit_price", "price", "rate", "unit_cost"),
     "description": ("description", "desc", "name"),
+    "unit": ("unit", "uom", "unit_of_measure"),
 }
 
 _MONEY_RE = re.compile(r"[^0-9.\-]")
@@ -110,11 +112,13 @@ def _parse_line(raw: dict, index: int) -> Line:
     if price_raw is None:
         raise ParseError(f"line {index} ({sku}): missing unit_price")
     desc = _pick(raw, _LINE_ALIASES["description"])
+    unit = _pick(raw, _LINE_ALIASES["unit"])
     return Line(
         sku=str(sku).strip(),
         qty=_qty(qty_raw, f"line {index} ({sku}) qty"),
         unit_price=_money(price_raw, f"line {index} ({sku}) unit_price"),
         description=str(desc) if desc is not None else "",
+        unit=str(unit).strip() if unit not in (None, "") else None,
     )
 
 

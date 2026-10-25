@@ -1,0 +1,16 @@
+{
+  "invoice_number": "INV-1051",
+  "vendor": "Acme Packaging Co.",
+  "po_number": "PO-7768",
+  "date": "2026-10-22",
+  "total": 1360.0,
+  "lines": [
+    {
+      "sku": "AC-TAPE",
+      "description": "Packing tape roll, 2 in x 110 yd",
+      "qty": 400,
+      "unit": null,
+      "unit_price": 3.4
+    }
+  ]
+}

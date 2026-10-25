@@ -1,0 +1,13 @@
+{
+  "receipt_id": "GR-4404",
+  "po_number": "PO-7693",
+  "vendor": "Coastal Supply Co.",
+  "date": "2026-10-02",
+  "lines": [
+    {
+      "sku": "CS-PAL",
+      "qty_received": 60,
+      "unit": "unit"
+    }
+  ]
+}

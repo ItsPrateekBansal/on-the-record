@@ -1,0 +1,26 @@
+MASTER SUPPLY AGREEMENT — Bolt Industrial Supply LLC
+
+This Agreement is made on January 1, 2026 between Harbor Ridge Manufacturing, Inc. ("Buyer") and Bolt Industrial Supply LLC, 4410 Rivet Road, Fresno, CA 93725 ("Supplier").
+
+1. Scope and Term
+1.1 This Master Supply Agreement (the "Agreement") governs all purchases by Buyer from Supplier between January 1, 2026 and December 31, 2026.
+1.2 Each purchase is made by a written purchase order ("PO") issued by Buyer. Supplier shall reference the PO number on every invoice.
+
+2. Quality and Inspection
+2.1 All goods shall conform to ISO 3506 and shall be free from defects in material and workmanship.
+2.2 Buyer may inspect goods within ten (10) business days of delivery and reject nonconforming goods.
+
+3. Pricing
+3.1 Unit price for SKU BX-200 shall be $12.00 per unit, fixed through Dec 31, 2026.
+3.2 For any single purchase order of more than 2,000 units of SKU BX-200, the unit price shall instead be $11.40 per unit.
+3.3 Unit price for SKU NT-080 shall be $2.40 per unit.
+3.4 Unit price for SKU WS-016 shall be $0.85 per unit.
+3.5 Supplier may not increase any price in this Section 3 without a written amendment signed by both parties.
+
+4. Invoicing and Payment
+4.1 Payment terms are net thirty (30) days from receipt of a correct invoice.
+4.2 Supplier shall issue one invoice per shipment and shall not invoice the same goods more than once. A re-issued invoice must clearly state that it replaces an earlier invoice.
+4.3 Buyer may dispute any invoice amount within thirty (30) days of receipt by written notice to Supplier. Undisputed amounts shall be paid on time.
+
+5. Confidentiality
+5.1 The prices in this Agreement are confidential information of both parties and shall not be disclosed to any third party.

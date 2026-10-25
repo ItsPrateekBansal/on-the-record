@@ -1,0 +1,20 @@
+MASTER SUPPLY AGREEMENT — Delta Office Solutions
+
+This Agreement is made on January 1, 2026 between Harbor Ridge Manufacturing, Inc. ("Buyer") and Delta Office Solutions, 905 Market St, Suite 300, San Francisco, CA 94103 ("Supplier").
+
+1. Scope and Term
+1.1 This Master Supply Agreement (the "Agreement") governs all purchases by Buyer from Supplier between January 1, 2026 and December 31, 2026.
+1.2 Each purchase is made by a written purchase order ("PO") issued by Buyer. Supplier shall reference the PO number on every invoice.
+
+2. Pricing
+2.1 Copy paper (SKU DO-PPR) is $45.00 per case of ten reams.
+2.2 Black high-yield toner cartridges (SKU DO-TNR) are $85.00 each.
+2.3 Ballpoint pens (SKU DO-PEN) are $9.50 per box of 50.
+
+3. Invoicing and Payment
+3.1 Payment terms are net thirty (30) days from receipt of a correct invoice.
+3.2 Supplier shall issue one invoice per shipment and shall not invoice the same goods more than once. A re-issued invoice must clearly state that it replaces an earlier invoice.
+3.3 Buyer may dispute any invoice amount within thirty (30) days of receipt by written notice to Supplier. Undisputed amounts shall be paid on time.
+
+4. Confidentiality
+4.1 The prices in this Agreement are confidential information of both parties and shall not be disclosed to any third party.

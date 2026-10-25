@@ -1,0 +1,23 @@
+{
+  "invoice_number": "INV-D-3287",
+  "vendor": "Delta Office Solutions",
+  "po_number": "PO-7762",
+  "date": "2026-10-20",
+  "total": 640.0,
+  "lines": [
+    {
+      "sku": "DO-PEN",
+      "description": "Ballpoint pens, box of 50",
+      "qty": 20,
+      "unit": null,
+      "unit_price": 9.5
+    },
+    {
+      "sku": "DO-PPR",
+      "description": "Copy paper, letter, case of 10 reams",
+      "qty": 10,
+      "unit": null,
+      "unit_price": 45.0
+    }
+  ]
+}

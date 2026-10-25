@@ -1,0 +1,32 @@
+{
+  "invoice_number": "INV-D-3270",
+  "vendor": "Delta Office Solutions",
+  "po_number": "PO-7695",
+  "date": "2026-10-06",
+  "total": 902.0,
+  "lines": [
+    {
+      "sku": "DO-PPR",
+      "description": "Copy paper, letter, case of 10 reams",
+      "qty": 15,
+      "unit": null,
+      "unit_price": 45.0
+    },
+    {
+      "sku": "DO-TNR",
+      "description": "Toner cartridge, black, high yield",
+      "qty": 2,
+      "unit": null,
+      "unit_price": 85.0
+    },
+    {
+      "sku": "DO-PEN",
+      "description": "Ballpoint pens, box of 50",
+      "qty": 6,
+      "unit": null,
+      "unit_price": 9.5
+    }
+  ],
+  "status": "PASS",
+  "paid_on": "2026-10-16"
+}

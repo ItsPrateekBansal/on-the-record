@@ -18,9 +18,16 @@ at runtime.
    number, PO, total, line items). Tolerates messy real-world formats
    (`"$7,800.00"`, string quantities, aliased keys) and warns instead of
    failing on a missing total or a total that doesn't match its lines.
-3. **Match engine** *(in progress)* — 3-way match against the PO and the
-   contract rate card: duplicate invoices, prices above the contracted
-   rate, quantity mismatches.
+3. **Audit engine** *(in progress)* — three layers, each check PASS, FAIL
+   or NEEDS_REVIEW:
+   - *Transaction:* invoice vs PO and goods receipt (price, quantity).
+   - *Commercial:* invoice vs the **contract** (price, volume tiers, units
+     per box). This catches invoices that match the PO perfectly but still
+     break the agreement.
+   - *Historical:* previous transactions in the company folder: invoices
+     that over-bill a partly billed PO, and duplicates of paid invoices.
+   AI reads the documents, Python makes every decision, and anything the
+   contract doesn't define (e.g. "carton") goes to a person.
 4. **Dispute drafter + dashboard + audit trail** *(in progress)* — a
    dispute email draft quoting invoice line vs. contract clause for every
    catch, a running $ saved counter, and a hash-chained audit trail.
@@ -36,6 +43,18 @@ python3 watcher/inbox.py --dir ./data/inbox
 # Screen-recordable end-to-end demo: watcher + parser, ~30 seconds
 python3 demo_watch.py
 ```
+
+## Demo data
+
+```bash
+pip install -r scripts/requirements.txt
+python3 scripts/make_fake_data.py     # regenerates data/ and the answer key
+python3 scripts/drop_invoices.py data/demo/live   # invoices "arrive" in data/inbox/
+```
+
+`data/expected_results.json` is the answer key: status, each layer, amount
+at risk and the quoted clauses for every invoice. Live set: 4 failures,
+$3,182 at risk, led by Bolt (PO match passes, contract check fails, $720).
 
 ## Test it
 
@@ -54,5 +73,8 @@ parser/test_parser.py       parser tests + watcher integration
 demo_watch.py               runnable watcher + parser demo
 render_video.py             renders demo output as a terminal video
 demo/pipeline_demo.mp4      recorded demo (watcher + parser)
-INVOICE_WATCHDOG_PLAN.md    full build plan
+scripts/make_fake_data.py   demo data generator + answer key
+scripts/drop_invoices.py    drops demo invoices into the inbox, one by one
+data/                       demo invoices (PDF + JSON), companies/<vendor>/
+                            (contract, POs, receipts, transactions), results/
 ```

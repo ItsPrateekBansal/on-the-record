@@ -1,0 +1,25 @@
+{
+  "po_number": "PO-7772",
+  "vendor_key": "bolt",
+  "vendor": "Bolt Industrial Supply LLC",
+  "date": "2026-10-23",
+  "buyer": "Harbor Ridge Manufacturing, Inc.",
+  "lines": [
+    {
+      "line": 1,
+      "sku": "WS-016",
+      "description": "Flat washer M16, stainless",
+      "qty": 2000,
+      "unit": "unit",
+      "unit_price": 0.85
+    },
+    {
+      "line": 2,
+      "sku": "NT-080",
+      "description": "Nylon lock nut M16",
+      "qty": 500,
+      "unit": "unit",
+      "unit_price": 2.4
+    }
+  ]
+}
