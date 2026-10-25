@@ -5,7 +5,10 @@
     python3 -m engine.pipeline --selftest   # audit every demo invoice in a scratch copy of data/
                                             # and compare with data/expected_results.json
 
-JSON invoices are read directly. PDFs need the local model: --model <ollama model name>.
+With a model (--model or $WATCHDOG_MODEL, e.g. the Nemotron or Qwen name from `ollama list`), the
+model reads PDF invoices and the contract and rewrites explanations; Python validates all of it.
+Without one, JSON invoices only, the rule-based contract reader and template explanations.
+--selftest --model <name> runs the PDFs through the model too.
 Each audited file moves from data/inbox/ to data/processed/.
 """
 
@@ -22,7 +25,8 @@ sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
 from engine import audit_log  # noqa: E402
 from engine.checks import run_checks  # noqa: E402
 from engine.evidence import DATA_DIR, EvidenceError, gather_evidence  # noqa: E402
-from engine.report import alert, draft_dispute, explain, save_transaction, write_result  # noqa: E402
+from engine.llm import model_name  # noqa: E402
+from engine.report import alert, explain_and_draft, save_transaction, write_result  # noqa: E402
 from parser.invoice_parser import ParseError, parse_invoice, parse_invoice_file  # noqa: E402
 
 
@@ -56,21 +60,21 @@ def process_file(path, data_dir: Path = DATA_DIR, model: str | None = None, move
     except (ParseError, ValueError) as exc:
         return _unreadable(path, f"could not read the invoice ({exc})", data_dir)
     try:
-        ev = gather_evidence(invoice, data_dir)                                 # steps 4-6
+        ev = gather_evidence(invoice, data_dir, model)                          # steps 4-6
     except EvidenceError as exc:
         return _unreadable(path, str(exc), data_dir, invoice.vendor)
     audit_log.append(data_dir, "evidence_loaded", invoice.invoice_no, company=ev.company.key, po=invoice.po,
-                     previous=[p.invoice_no for p in ev.previous], problems=ev.problems)
+                     previous=[p.invoice_no for p in ev.previous], problems=ev.problems, terms=ev.terms_source)
 
     result = run_checks(ev)                                                     # step 7
     result["file"] = path.name
+    result["terms_source"] = ev.terms_source
     audit_log.append(data_dir, "checked", invoice.invoice_no, status=result["status"],
                      main_check=result["main_check"], at_risk=result["at_risk"])
 
     save_transaction(invoice, result, data_dir)                                 # step 8 (after step 6)
     index = json.loads((data_dir / "companies" / "index.json").read_text())
-    result["explanation"] = explain(result)                                     # step 10
-    result["dispute_draft"] = draft_dispute(result, index[result["vendor_key"]]["email"])
+    result.update(explain_and_draft(result, index[result["vendor_key"]]["email"], model))  # step 10
     write_result(result, data_dir)                                              # step 9
     audit_log.append(data_dir, "reported", invoice.invoice_no, folder=result["result_folder"])
     text = alert(result, data_dir)                                              # step 11
@@ -110,7 +114,7 @@ def watch(data_dir: Path = DATA_DIR, model: str | None = None):
 COMPARED = ("status", "main_check", "at_risk", "amount_under_review", "result_folder")
 
 
-def selftest(data_dir: Path = DATA_DIR) -> bool:
+def selftest(data_dir: Path = DATA_DIR, model: str | None = None) -> bool:
     """Audit every demo invoice in a scratch copy of data/ and compare with the answer key."""
     expected = json.loads((Path(data_dir) / "expected_results.json").read_text())["invoices"]
     bad = 0
@@ -120,7 +124,8 @@ def selftest(data_dir: Path = DATA_DIR) -> bool:
         for d in ("results", "processed", "outbox"):
             shutil.rmtree(scratch / d, ignore_errors=True)
         for row in expected:
-            got = process_file(scratch / "demo" / row["set"] / row["file"].replace(".pdf", ".json"), scratch, move=False)
+            src = scratch / "demo" / row["set"] / (row["file"] if model else row["file"].replace(".pdf", ".json"))
+            got = process_file(src, scratch, model, move=False)
             diffs = [k for k in COMPARED if got[k] != row[k]]
             diffs += [f"layers.{n}" for n in row["layers"] if got["layers"][n]["status"] != row["layers"][n]["status"]
                       or got["layers"][n]["checks"] != row["layers"][n]["checks"]]
@@ -143,15 +148,17 @@ def main():
     mode.add_argument("--once", action="store_true", help="audit what is in data/inbox/ now")
     mode.add_argument("--selftest", action="store_true", help="compare every demo invoice with the answer key")
     ap.add_argument("--data", default=str(DATA_DIR), help="data folder (default: repo data/)")
-    ap.add_argument("--model", help="Ollama model for PDF invoices, e.g. qwen3.5:9b")
+    ap.add_argument("--model", help="local Ollama model (default: $WATCHDOG_MODEL). Without one: JSON "
+                                    "invoices only, rule-based contract reading, template explanations")
     args = ap.parse_args()
-    data_dir = Path(args.data)
+    data_dir, model = Path(args.data), model_name(args.model)
     if args.selftest:
-        sys.exit(0 if selftest(data_dir) else 1)
+        sys.exit(0 if selftest(data_dir, model) else 1)
+    print(f"model: {model or 'none (rules + templates)'}")
     if args.once:
-        run_once(data_dir, args.model)
+        run_once(data_dir, model)
     else:
-        watch(data_dir, args.model)
+        watch(data_dir, model)
 
 
 if __name__ == "__main__":

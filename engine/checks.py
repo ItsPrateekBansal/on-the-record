@@ -33,10 +33,15 @@ def _money(x: float) -> str:
     return f"${x:,.2f}"
 
 
+def _unit(name: str) -> str:
+    name = name.strip().lower()
+    return UNIT_ALIASES.get(name, name)
+
+
 def to_contract_units(line, term):
     """Invoice line in the contract's unit: (qty, unit_price, None) or (None, None, reason)."""
-    billed = UNIT_ALIASES.get((line.unit or term.unit).strip().lower(), (line.unit or term.unit).strip().lower())
-    if billed == term.unit.lower():
+    billed, priced = _unit(line.unit or term.unit), _unit(term.unit)
+    if billed == priced:
         return line.qty, line.unit_price, None
     box = re.fullmatch(r"box(?:es)?\s*(?:\(\s*(\d+)\s*\))?", billed)
     if box and term.units_per_box:

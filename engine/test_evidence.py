@@ -10,8 +10,8 @@ import sys
 from pathlib import Path
 
 sys.path.insert(0, os.path.join(os.path.dirname(os.path.abspath(__file__)), ".."))
-from engine.evidence import (DATA_DIR, EvidenceError, extract_terms, gather_evidence,  # noqa: E402
-                             load_company, load_transactions, read_contract)
+from engine.evidence import (DATA_DIR, EvidenceError, _validated_term, extract_terms,  # noqa: E402
+                             gather_evidence, load_company, load_transactions, read_contract)
 from parser.invoice_parser import parse_invoice, parse_invoice_file  # noqa: E402
 
 PASSED = []
@@ -110,6 +110,22 @@ def test_missing_po_is_a_problem_not_a_crash():
     assert ev.po is None and ev.receipt is None
     assert any("PO-0000 not found" in p for p in ev.problems)
     assert any("ZZ-999: not in" in p for p in ev.problems)
+
+
+
+def test_model_terms_are_checked_against_the_contract():
+    c = read_contract(load_company("Bolt Industrial Supply LLC"))
+    good = {"clause": "3.1", "quote": "Unit price for SKU BX-200 shall be $12.00 per unit", "unit_price": 12.0,
+            "unit": "unit", "units_per_box": None,
+            "volume_tier": {"more_than_qty": 2000, "unit_price": 11.40, "clause": "3.2"}}
+    term, why = _validated_term("BX-200", good, c)
+    assert why is None and term.volume_tier == (2000, 11.40, "3.2") and term.quote == c.clauses["3.1"]
+    for change, expect in [({"unit_price": 13.44}, "not written"), ({"clause": "3.9"}, "does not exist"),
+                           ({"quote": "Unit price for SKU BX-200 shall be $13.44"}, "quote"),
+                           ({"units_per_box": 24}, "per box"),
+                           ({"volume_tier": {"more_than_qty": 500, "unit_price": 11.40, "clause": "3.2"}}, "tier")]:
+        term, why = _validated_term("BX-200", good | change, c)
+        assert term is None and expect in why, (change, why)
 
 
 if __name__ == "__main__":

@@ -2,9 +2,9 @@
 
   save_transaction  step 8:  companies/<vendor>/transactions/<invoice>.json
   write_result      step 9:  results/success|discrepancy|needs_review/<invoice>.json
-  explain / draft_dispute  step 10: template text built only from the verified result.
-                    The local model (Nemotron / Qwen) will later rewrite these; it must not
-                    change any number, clause or verdict.
+  explain / draft_dispute  step 10: template text built only from the verified result;
+                    explain_and_draft lets the local model (Nemotron / Qwen) rewrite it, and
+                    keeps the rewrite only if every dollar amount and clause number survives.
   alert             step 11: one short line for Slack. Prices, clauses and drafts stay local.
                     Alerts are appended to data/alerts.jsonl; the OpenClaw agent posts them.
 """
@@ -12,6 +12,7 @@
 from __future__ import annotations
 
 import json
+import re
 from datetime import datetime, timezone
 from pathlib import Path
 
@@ -102,6 +103,51 @@ def draft_dispute(result: dict, vendor_email: str | None = None) -> str | None:
             f"Amount in dispute: {_money(result['at_risk'])}. Please send a corrected invoice; the undisputed "
             f"amount will be paid on the agreed terms.\n\n"
             f"Regards,\nAccounts Payable, Harbor Ridge Manufacturing, Inc.\n")
+
+
+REWRITE_PROMPT = """Rewrite the text below for {reader}. {style}
+Use only the facts in the text. Keep every dollar amount, quantity, SKU, invoice number, PO number
+and clause number exactly as written, and do not add any new number. Return only the rewritten text.
+
+TEXT:
+{text}"""
+
+_MONEY_RE = re.compile(r"\$[\d,]+\.\d{2}")
+_CLAUSE_RE = re.compile(r"\b\d+\.\d+\b")
+
+
+def facts_kept(original: str, rewritten: str) -> bool:
+    """The rewrite has exactly the same dollar amounts and clause numbers as the template."""
+    def facts(text):
+        return set(_MONEY_RE.findall(text)), set(_CLAUSE_RE.findall(_MONEY_RE.sub("", text)))
+    return bool(rewritten.strip()) and facts(original) == facts(rewritten)
+
+
+def rewrite(text: str, model: str, reader: str, style: str) -> tuple[str, bool]:
+    """(text, used_model). Falls back to the template if the model fails or changes a fact."""
+    from .llm import generate
+    try:
+        out = generate(REWRITE_PROMPT.format(reader=reader, style=style, text=text), model).strip()
+    except Exception:                                      # model down or slow: the template is fine
+        return text, False
+    return (out, True) if facts_kept(text, out) else (text, False)
+
+
+def explain_and_draft(result: dict, vendor_email: str | None, model: str | None) -> dict:
+    """Step 10: template text, rewritten by the local model when one is set and the facts survive."""
+    explanation, draft = explain(result), draft_dispute(result, vendor_email)
+    used = []
+    if model:
+        explanation, ok = rewrite(explanation, model, "an accounts-payable manager",
+                                  "Two or three plain sentences: what is wrong and how much is at risk.")
+        used += ["explanation"] if ok else []
+        if draft:
+            draft, ok = rewrite(draft, model, "the supplier's accounts team",
+                                "A short, polite, firm dispute email. Keep the To and Subject lines "
+                                "and quote the contract clauses word for word.")
+            used += ["dispute_draft"] if ok else []
+    return {"explanation": explanation, "dispute_draft": draft, "written_by": f"model:{model}" if used else "template",
+            "model_wrote": used}
 
 
 # ---------------------------------------------------------------- step 11

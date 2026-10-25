@@ -51,8 +51,17 @@ python3 scripts/drop_invoices.py data/demo/live   # terminal 3: invoices "arrive
 python3 scripts/reset_demo.py               # before every demo run: back to a clean state
 ```
 
-`--once` audits what is in the inbox and stops. PDF invoices need the local
-model: `--model qwen3.5:9b` (or the Nemotron name from `ollama list`).
+`--once` audits what is in the inbox and stops.
+
+**Local model (Nemotron 3 Super / Qwen 32B):** `export WATCHDOG_MODEL=<name from ollama list>`
+or `--model <name>`. The model then reads PDF invoices and the whole contract and rewrites the
+explanation and dispute draft. Python checks every value it returns against the documents and
+keeps a rewrite only if every amount and clause number is unchanged. Without a model: JSON
+invoices, rule-based contract reading, template text. `python3 -m engine.llm <name>` tests a
+model; `--selftest --model <name>` runs all 20 demo PDFs through it.
+
+**NemoClaw / OpenClaw:** skills in `skills/` (`audit-invoices`, `daily-summary`); the agent
+posts the queued alerts from `python3 -m engine.alerts pending`. Setup: `docs/NEMOCLAW_SETUP.md`.
 
 ## Demo data
 
@@ -89,6 +98,10 @@ engine/report.py            steps 8-11: transactions, results, explanation, aler
 engine/audit_log.py         hash-chained audit log + verify
 engine/approval.py          step 13: approve dispute / mark correct
 engine/pipeline.py          runs it all: --watch, --once, --selftest
+engine/llm.py               local model via Ollama (Nemotron / Qwen), test with python3 -m engine.llm
+engine/alerts.py            alert queue + morning summary for the OpenClaw agent
+skills/                     OpenClaw skills: audit-invoices, daily-summary
+docs/NEMOCLAW_SETUP.md      connecting the models and NemoClaw on the GB10
 dashboard/app.py            step 12: Streamlit evidence screen
 demo_watch.py               runnable watcher + parser demo
 render_video.py             renders demo output as a terminal video

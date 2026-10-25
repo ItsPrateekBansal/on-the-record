@@ -15,7 +15,9 @@ sys.path.insert(0, os.path.join(os.path.dirname(os.path.abspath(__file__)), ".."
 from engine import audit_log  # noqa: E402
 from engine.approval import ApprovalError, approve_dispute, mark_correct  # noqa: E402
 from engine.evidence import DATA_DIR  # noqa: E402
+from engine.alerts import mark_posted, pending, summary  # noqa: E402
 from engine.pipeline import process_file, selftest  # noqa: E402
+from engine.report import facts_kept  # noqa: E402
 
 PASSED = []
 FAILED = []
@@ -156,6 +158,26 @@ def test_audit_log_detects_tampering():
     (data / "audit_log.jsonl").write_text("\n".join(lines) + "\n")
     ok, _, problem = audit_log.verify(data)
     assert not ok and "entry 3" in problem
+
+
+
+def test_rewrite_guard_keeps_facts():
+    template = "BX-200: billed $13.44, contract clause 3.1 says $12.00 -> 500 x $1.44 = $720.00."
+    assert facts_kept(template, "Bolt charged $13.44 instead of $12.00 (clause 3.1): $720.00 too much, 500 x $1.44.")
+    assert not facts_kept(template, "Bolt overcharged by $72.00 under clause 3.1.")          # changed amount
+    assert not facts_kept(template, "Bolt charged $13.44, not $12.00, so $720.00 is at risk.")   # dropped clause
+    assert not facts_kept(template, "")
+
+
+def test_alert_queue_and_summary():
+    data = scratch()
+    drop(data, "live/01_bolt_INV-B-5520.json")
+    drop(data, "live/04_delta_INV-D-3301.json")                       # clean: no alert
+    queued = pending(data)
+    assert len(queued) == 1 and "$720.00" in queued[0][1]
+    assert mark_posted("all", data) == 1 and pending(data) == []
+    text = summary(data)
+    assert "audited 2 invoices. 1 failed, $720.00 at risk" in text and "chain intact" in text
 
 
 if __name__ == "__main__":
