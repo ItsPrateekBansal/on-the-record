@@ -77,5 +77,4 @@ scripts/make_fake_data.py   demo data generator + answer key
 scripts/drop_invoices.py    drops demo invoices into the inbox, one by one
 data/                       demo invoices (PDF + JSON), companies/<vendor>/
                             (contract, POs, receipts, transactions), results/
-INVOICE_WATCHDOG_PLAN.md    full build plan (v3)
 ```
