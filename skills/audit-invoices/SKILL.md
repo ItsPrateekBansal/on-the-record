@@ -31,6 +31,9 @@ You are the accounts-payable auditor. You investigate; Python decides; a human a
    python3 -m engine.alerts posted <id> <id> ...
    ```
 
+   Direct route, no agent needed: `python3 -m engine.slack pending` posts the
+   same lines and marks them posted. Setup: `docs/SLACK_SETUP.md`.
+
 ## Rules
 
 - Never change a verdict, amount or clause. The pipeline output is the answer.

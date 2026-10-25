@@ -1,5 +1,6 @@
 __pycache__/
 *.pyc
+.env
 demo_inbox/
 frames/
 demo_output.txt

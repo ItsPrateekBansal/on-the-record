@@ -66,6 +66,9 @@ def main() -> int:
     ap.add_argument("--model", help="local Ollama model (default: $WATCHDOG_MODEL)")
     ap.add_argument("--pdf", action="store_true",
                     help="drop the PDF twins instead of JSON (needs --model)")
+    ap.add_argument("--slack", action="store_true",
+                    help="post the morning summary and each phase's alerts to Slack "
+                         "(needs SLACK_BOT_TOKEN + SLACK_CHANNEL; see docs/SLACK_SETUP.md)")
     ap.add_argument("--data", default=str(DATA), help="data folder")
     args = ap.parse_args()
     data_dir, model = Path(args.data), model_name(args.model)
@@ -74,6 +77,26 @@ def main() -> int:
         return 2
     exts = (".json", ".pdf") if model else (".json",)
     suffix = ".pdf" if args.pdf else ".json"
+
+    slack_on = False
+    if args.slack:
+        from engine import slack
+        try:
+            slack.config()
+            slack_on = True
+        except slack.NotConfigured as exc:
+            print(f"[slack] disabled: {exc}")
+
+    def slack_flush(note):
+        if not slack_on:
+            return
+        try:
+            posted, failed = slack.post_pending(data_dir)
+        except slack.SlackError as exc:
+            print(f"  [slack] post failed ({exc}); alerts stay queued")
+            return
+        print(f"  [slack] {note}: posted {len(posted)} alert(s)"
+              + (f", {len(failed)} failed" if failed else ""))
 
     print("== reset ==")
     subprocess.run([sys.executable, str(ROOT / "scripts" / "reset_demo.py")],
@@ -116,6 +139,13 @@ def main() -> int:
             if name == "overnight":
                 print("\n-- morning summary --")
                 print("  " + alerts.summary(data_dir))
+                if slack_on:
+                    try:
+                        slack.post_summary(data_dir)
+                        print("  [slack] morning summary posted")
+                    except slack.SlackError as exc:
+                        print(f"  [slack] summary failed ({exc})")
+            slack_flush(f"{name} alerts")
     finally:
         watcher.stop()
         thread.join(timeout=3)

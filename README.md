@@ -72,6 +72,13 @@ model; `--selftest --model <name>` runs all 20 demo PDFs through it.
 **NemoClaw / OpenClaw:** skills in `skills/` (`audit-invoices`, `daily-summary`); the agent
 posts the queued alerts from `python3 -m engine.alerts pending`. Setup: `docs/NEMOCLAW_SETUP.md`.
 
+**Slack:** the pipeline queues short alerts (no prices, no clauses) in `alerts.jsonl`;
+post them with `python3 -m engine.slack pending`, the morning summary with
+`python3 -m engine.slack summary`, or post live with `python3 demo.py --slack` /
+`python3 -m engine.pipeline --watch --slack`. Setup: `docs/SLACK_SETUP.md`.
+Tokens come from the environment only (`SLACK_BOT_TOKEN`, `SLACK_CHANNEL`)
+and are never committed.
+
 ## Demo data
 
 ```bash

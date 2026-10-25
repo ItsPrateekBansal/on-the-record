@@ -2,6 +2,7 @@
 
     python3 -m engine.pipeline --watch      # watch data/inbox/ and audit invoices as they arrive
     python3 -m engine.pipeline --once       # audit everything in data/inbox/ now, then stop
+    python3 -m engine.pipeline --watch --slack   # also post each catch to Slack as it lands
     python3 -m engine.pipeline --selftest   # audit every demo invoice in a scratch copy of data/
                                             # and compare with data/expected_results.json
 
@@ -103,12 +104,32 @@ def run_once(data_dir: Path = DATA_DIR, model: str | None = None) -> list[dict]:
     return results
 
 
-def watch(data_dir: Path = DATA_DIR, model: str | None = None):
+def _slack_flush(data_dir):
+    """Best-effort: post queued alerts, never break the audit on Slack trouble."""
+    from engine import slack
+    try:
+        posted, failed = slack.post_pending(data_dir)
+    except slack.NotConfigured:
+        print("[slack] not configured (SLACK_BOT_TOKEN / SLACK_CHANNEL); alerts stay queued")
+    except slack.SlackError as exc:
+        print(f"[slack] post failed ({exc}); alerts stay queued")
+    else:
+        if posted or failed:
+            print(f"[slack] posted {len(posted)} alert(s)"
+                  + (f", {len(failed)} failed" if failed else ""))
+
+
+def watch(data_dir: Path = DATA_DIR, model: str | None = None, slack: bool = False):
     sys.path.insert(0, str(Path(__file__).resolve().parent.parent / "watcher"))
     from inbox import InboxWatcher
     exts = (".json", ".pdf") if model else (".json",)
-    InboxWatcher(Path(data_dir) / "inbox", lambda path, _raw: print(_line(process_file(path, data_dir, model))),
-                 extensions=exts).run()
+
+    def on_invoice(path, _raw):
+        print(_line(process_file(path, data_dir, model)))
+        if slack:
+            _slack_flush(data_dir)
+
+    InboxWatcher(Path(data_dir) / "inbox", on_invoice, extensions=exts).run()
 
 
 COMPARED = ("status", "main_check", "at_risk", "amount_under_review", "result_folder")
@@ -150,6 +171,9 @@ def main():
     ap.add_argument("--data", default=str(DATA_DIR), help="data folder (default: repo data/)")
     ap.add_argument("--model", help="local Ollama model (default: $WATCHDOG_MODEL). Without one: JSON "
                                     "invoices only, rule-based contract reading, template explanations")
+    ap.add_argument("--slack", action="store_true",
+                    help="post queued alerts to Slack after each audit (needs SLACK_BOT_TOKEN + "
+                         "SLACK_CHANNEL; see docs/SLACK_SETUP.md)")
     args = ap.parse_args()
     data_dir, model = Path(args.data), model_name(args.model)
     if args.selftest:
@@ -157,8 +181,10 @@ def main():
     print(f"model: {model or 'none (rules + templates)'}")
     if args.once:
         run_once(data_dir, model)
+        if args.slack:
+            _slack_flush(data_dir)
     else:
-        watch(data_dir, model)
+        watch(data_dir, model, slack=args.slack)
 
 
 if __name__ == "__main__":
