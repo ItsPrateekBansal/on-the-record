@@ -402,8 +402,8 @@ If something blocks you for more than 30 minutes, ask a mentor right away.
 1. **Problem (15 s):** "Companies pay thousands of invoices. Their ERP checks that the invoice matches the PO. Nobody checks that the PO matches the contract."
 2. **Overnight (15 s):** the morning Slack summary: "Audited 14 invoices overnight. 2 failed, $1,280 at risk. 1 needs human review." Nobody asked it to.
 3. **Live (30 s):** email the 4 live invoices to Mailpit. The agent picks them up by itself. Three alerts appear; the clean one passes.
-4. **The wow, Bolt (40 s):** open the evidence screen. "The invoice matches the PO perfectly: PASS. But Watchdog checks the agreement behind the transaction." Contract FAIL, clause 3.1 quoted, $720.
-5. **History + baseline (15 s):** Acme, a near-duplicate of a paid invoice, $2,400. Coastal, ordinary over-billing, $1,200: "we do the normal checks too."
+4. **The wow, Bolt (50 s):** open the evidence screen. "The invoice matches the PO perfectly: PASS. But Watchdog checks the agreement behind the transaction." Contract FAIL, clause 3.1 quoted, $720.
+5. **Baseline (5 s):** point at the Acme ($2,400, duplicate) and Coastal ($1,200, over-billed) alerts: "Watchdog runs the standard checks too, so it can replace a manual audit, not just add one more tool." Don't open them; ERPs can catch these, so they are not the story. If a judge says "my ERP does duplicates": "Right, we don't compete with that. Our point is the invoice your ERP approves, like Bolt."
 6. **Honest uncertainty (10 s):** the carton invoice: "The contract doesn't define a carton, so it asks a person instead of guessing."
 7. **Human approval (15 s):** "AI investigates. Code verifies. Humans authorize." Click Approve; the dispute moves to the outbox, ready to send. The agent sent nothing.
 8. **Cannot leak (20 s):** in Slack, ask the agent to upload the invoice to a public site. OpenShell blocks it.
