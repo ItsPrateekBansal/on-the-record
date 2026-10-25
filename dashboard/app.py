@@ -161,6 +161,40 @@ def filter_rows(rows, status):
     return rows if status in (None, "ALL") else [r for r in rows if r["status"] == status]
 
 
+def vendor_scorecard(rows):
+    """Vendor -> audited / failed / $ at risk, worst first. Pure: no Streamlit.
+
+    Only FAIL rows contribute $ at risk (the pipeline already zeroes it for
+    every other status). Ties break on failed count, then vendor name, so the
+    table is stable run to run.
+    """
+    by_vendor = {}
+    for r in rows:
+        v = by_vendor.setdefault(r.get("vendor") or "?", {"vendor": r.get("vendor") or "?",
+                                                           "audited": 0, "failed": 0, "at_risk": 0.0})
+        v["audited"] += 1
+        if r["status"] == "FAIL":
+            v["failed"] += 1
+            v["at_risk"] += r.get("at_risk") or 0.0
+    table = sorted(by_vendor.values(), key=lambda v: (-v["at_risk"], -v["failed"], v["vendor"]))
+    for v in table:
+        v["at_risk"] = round(v["at_risk"], 2)
+    return table
+
+
+def scorecard(rows):
+    """Vendor scorecard section: full width, between the metrics and the feed."""
+    table = vendor_scorecard(rows)
+    if not table:
+        return
+    sec("Vendor scorecard")
+    top = table[0]
+    st.markdown(f"Top offender: **{esc(top['vendor'])}** — {money(top['at_risk'])} at risk "
+                f"across {top['failed']} failed invoice(s).")
+    st.table([{"Vendor": v["vendor"], "Audited": v["audited"], "Failed": v["failed"],
+               "$ at risk": money(v["at_risk"])} for v in table])
+
+
 def _num(x):
     try:
         return float(x)
@@ -441,6 +475,7 @@ def main():
         if not rows:
             empty_state()
             return
+        scorecard(rows)
         by_id = {r["invoice"]: r for r in rows}
         selected = st.session_state.get("selected")
         if selected not in by_id:                 # default: the newest failure, else the newest invoice
