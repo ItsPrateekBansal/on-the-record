@@ -196,6 +196,24 @@ def _validated_term(sku: str, raw: dict, contract: Contract, unit: str | None = 
                 unit_price=price, volume_tier=tier, units_per_box=int(box) if box is not None else None), None
 
 
+_TERMS_CACHE: dict = {}       # (company, model, contract text) -> (terms, problems)
+
+
+def cached_terms_llm(contract: Contract, company: Company, model: str) -> tuple[dict, list]:
+    """extract_terms_llm for all of the company's SKUs, once per contract and model.
+
+    Contracts don't change between invoices, so the model reads each one once per run. A read
+    with problems is not cached, so the next invoice tries again.
+    """
+    key = (company.key, model, contract.text)
+    if key not in _TERMS_CACHE:
+        terms, problems = extract_terms_llm(contract, company, model)
+        if problems:
+            return terms, problems
+        _TERMS_CACHE[key] = (terms, problems)
+    return _TERMS_CACHE[key]
+
+
 def extract_terms_llm(contract: Contract, company: Company, model: str, skus=None) -> tuple[dict, list]:
     """Step 5 with the local model: the whole contract goes in, terms come out, Python validates.
 
@@ -280,8 +298,8 @@ def gather_evidence(invoice: Invoice, data_dir: Path = DATA_DIR, model: str | No
     contract = read_contract(company)
     problems = []
     if model:
-        wanted = [l.sku for l in invoice.lines if l.sku in company.skus]
-        terms, problems = extract_terms_llm(contract, company, model, wanted)
+        terms, problems = cached_terms_llm(contract, company, model)
+        terms, problems = dict(terms), list(problems)     # copies: the cache must not change
     else:
         terms = extract_terms(contract, company)
     po = load_po(company, invoice.po)
