@@ -1,12 +1,12 @@
 {
   "receipt_id": "GR-4416",
-  "po_number": "PO-7765",
+  "po_number": "PO-7771",
   "vendor": "Coastal Supply Co.",
-  "date": "2026-10-21",
+  "date": "2026-10-23",
   "lines": [
     {
       "sku": "CS-PAL",
-      "qty_received": 125,
+      "qty_received": 45,
       "unit": "unit"
     }
   ]

@@ -1,13 +1,13 @@
 {
   "receipt_id": "GR-4415",
-  "po_number": "PO-7764",
-  "vendor": "Coastal Supply Co.",
-  "date": "2026-10-21",
+  "po_number": "PO-7770",
+  "vendor": "Acme Packaging Co.",
+  "date": "2026-10-22",
   "lines": [
     {
-      "sku": "CS-CRT",
-      "qty_received": 200,
-      "unit": "unit"
+      "sku": "AC-WRAP",
+      "qty_received": 24,
+      "unit": "roll"
     }
   ]
 }

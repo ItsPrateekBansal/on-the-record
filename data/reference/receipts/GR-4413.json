@@ -1,18 +1,13 @@
 {
   "receipt_id": "GR-4413",
-  "po_number": "PO-7762",
-  "vendor": "Delta Office Solutions",
-  "date": "2026-10-20",
+  "po_number": "PO-7768",
+  "vendor": "Acme Packaging Co.",
+  "date": "2026-10-22",
   "lines": [
     {
-      "sku": "DO-PEN",
-      "qty_received": 20,
-      "unit": "box"
-    },
-    {
-      "sku": "DO-PPR",
-      "qty_received": 10,
-      "unit": "case"
+      "sku": "AC-TAPE",
+      "qty_received": 200,
+      "unit": "roll"
     }
   ]
 }

@@ -161,17 +161,12 @@ INVOICES = [
          expect=dict(status="FAIL", check="contract_price", at_risk=720.00,
                      proof="The invoice matches PO-7750 exactly ($13.44 x 500), so a PO match passes. Contract clause 3.1 "
                            "says $12.00 per unit. 500 x ($13.44 - $12.00) = $720.00 of leakage.")),
-    dict(set="live", file="02_acme_INV-1043A.pdf", vendor="acme", number="INV-1043A", date="2026-10-16", po="PO-7701",
-         lines=[L("AC-1212", 2000, 1.20)],
-         expect=dict(status="FAIL", check="duplicate", at_risk=2400.00,
-                     proof="Same vendor, same amount ($2,400.00) and same PO as INV-1043, already paid on 2026-10-20; "
-                           "the number differs only by a trailing 'A'. Contract 8.2: no invoicing the same goods twice.")),
-    dict(set="live", file="03_coastal_INV-CS-0912.pdf", vendor="coastal", number="INV-CS-0912", date="2026-10-23", po="PO-7781",
+    dict(set="live", file="02_coastal_INV-CS-0912.pdf", vendor="coastal", number="INV-CS-0912", date="2026-10-23", po="PO-7781",
          lines=[L("CS-PAL", 100, 60.00)],
          expect=dict(status="FAIL", check="po_quantity", at_risk=1200.00,
                      proof="Billed 100 pallets, PO-7781 line 1 ordered 80 and receipt GR-4432 received 80. "
                            "20 x $60.00 = $1,200.00. Contract 2.1: excess quantities will not be paid.")),
-    dict(set="live", file="04_delta_INV-D-3301.pdf", vendor="delta", number="INV-D-3301", date="2026-10-24", po="PO-7790",
+    dict(set="live", file="03_delta_INV-D-3301.pdf", vendor="delta", number="INV-D-3301", date="2026-10-24", po="PO-7790",
          lines=[L("DO-PPR", 40, 45.00), L("DO-TNR", 6, 85.00)],
          expect=dict(status="PASS", check=None, at_risk=0.00,
                      proof="Prices match clauses 1.1 and 1.2; quantities match PO-7790 and its receipt.")),
@@ -232,7 +227,6 @@ PO_OVERRIDES = {
     "PO-7768": [L("AC-TAPE", 200, 3.40)],
     "PO-7767": [L("BR-6204", 60, 11.50)],
 }
-PO_DATES = {"PO-7701": "2026-10-05"}
 
 # Goods receipts (what the warehouse received). Default: the full PO quantity.
 # Coastal: set 80 -> 75 to show PO 80 / received 75 / billed 100 (at risk becomes $1,500; update its expect).
@@ -242,22 +236,7 @@ RECEIPT_OVERRIDES = {"PO-7781": ("GR-4432", 80)}
 CONVERSIONS = {("BR-6204", "box (12)"): 12}     # Evergreen clause 2.4: boxes of 12 units
 VOLUME_TIERS = {"BX-200": (2000, 11.40, "3.2")}  # Bolt clause 3.2: more than 2,000 units -> $11.40
 QUANTITY_CLAUSES = {"coastal": "2.1"}           # "goods shipped in excess ... will not be paid for"
-DUPLICATE_CLAUSE = "8.2"
 
-PAID = [
-    dict(number="INV-1043", vendor="acme", date="2026-10-14", po="PO-7701", paid_on="2026-10-20",
-         lines=[L("AC-1212", 2000, 1.20)]),
-    dict(number="INV-1039", vendor="acme", date="2026-09-28", po="PO-7688", paid_on="2026-10-08",
-         lines=[L("AC-1212", 1050, 1.20)]),
-    dict(number="INV-B-5471", vendor="bolt", date="2026-09-30", po="PO-7690", paid_on="2026-10-12",
-         lines=[L("BX-200", 400, 12.00)]),
-    dict(number="INV-CS-0880", vendor="coastal", date="2026-10-02", po="PO-7693", paid_on="2026-10-15",
-         lines=[L("CS-PAL", 60, 60.00)]),
-    dict(number="INV-D-3270", vendor="delta", date="2026-10-06", po="PO-7695", paid_on="2026-10-16",
-         lines=[L("DO-PPR", 15, 45.00), L("DO-TNR", 2, 85.00), L("DO-PEN", 6, 9.50)]),
-    dict(number="INV-EV-190", vendor="evergreen", date="2026-10-07", po="PO-7697", paid_on="2026-10-17",
-         lines=[L("BR-6204", 4, 138.00, "box (12)")]),
-]
 
 
 # ---------------------------------------------------------------- helpers
@@ -306,11 +285,11 @@ def normalize(vendor, line):
 
 
 def audit(inv, po, receipt):
-    """Three layers: transaction (PO + receipt), commercial (contract), historical (paid invoices)."""
+    """Two layers: transaction (PO + receipt) and commercial (contract)."""
     vendor, total = inv["vendor"], invoice_total(inv["lines"])
     po_lines = {l["sku"]: l for l in po["lines"]}
     received = {l["sku"]: l["qty_received"] for l in receipt["lines"]}
-    checks = {k: "PASS" for k in ("po_price", "po_quantity", "receipt_quantity", "contract_price", "duplicate")}
+    checks = {k: "PASS" for k in ("po_price", "po_quantity", "receipt_quantity", "contract_price")}
     clauses, payable, review = [], 0.0, False
     for line in inv["lines"]:
         norm = normalize(vendor, line)
@@ -335,18 +314,13 @@ def audit(inv, po, receipt):
         if price > cprice + 0.005:
             checks["contract_price"] = "FAIL"
         payable += min(qty, pl["qty"], received[line["sku"]]) * min(price, cprice)
-    dup = next((p for p in PAID if p["vendor"] == vendor and p["po"] == inv["po"]
-                and invoice_total(p["lines"]) == total), None)
-    if dup:
-        checks["duplicate"] = "FAIL"
-        clauses.append(DUPLICATE_CLAUSE)
 
     def layer(*names):
         vals = [checks[n] for n in names]
         return "FAIL" if "FAIL" in vals else "NEEDS_REVIEW" if "NEEDS_REVIEW" in vals else "PASS"
 
     status = "FAIL" if "FAIL" in checks.values() else "NEEDS_REVIEW" if review else "PASS"
-    at_risk = total if dup else 0.0 if review else round(total - payable, 2)
+    at_risk = 0.0 if review else round(total - payable, 2)
     return {
         "status": status,
         "at_risk": at_risk,
@@ -355,8 +329,6 @@ def audit(inv, po, receipt):
             "transaction": {"status": layer("po_price", "po_quantity", "receipt_quantity"),
                             "checks": {k: checks[k] for k in ("po_price", "po_quantity", "receipt_quantity")}},
             "commercial": {"status": layer("contract_price"), "checks": {"contract_price": checks["contract_price"]}},
-            "historical": {"status": layer("duplicate"), "checks": {"duplicate": checks["duplicate"]},
-                           "matched_paid_invoice": dup["number"] if dup else None},
         },
         "evidence": {
             "po": po["po_number"],
@@ -478,7 +450,7 @@ def main():
     if ROOT.exists():
         for sub in ["reference", "demo", "inbox", "outbox"]:
             shutil.rmtree(ROOT / sub, ignore_errors=True)
-    for d in ["reference/contracts", "reference/pos", "reference/receipts", "reference/paid",
+    for d in ["reference/contracts", "reference/pos", "reference/receipts",
               "demo/live", "demo/wifi_off", "demo/overnight", "inbox", "outbox"]:
         (ROOT / d).mkdir(parents=True, exist_ok=True)
 
@@ -491,9 +463,9 @@ def main():
              for key, v in VENDORS.items()}
     (ROOT / "reference" / "contracts" / "index.json").write_text(json.dumps(index, indent=2))
 
-    # POs: one per invoice (paid + new), overrides for the traps
+    # POs: one per invoice, overrides for the traps
     pos = {}
-    for inv in PAID + INVOICES:
+    for inv in INVOICES:
         po = inv["po"]
         if po in pos:
             continue
@@ -501,7 +473,7 @@ def main():
         pos[po] = {
             "po_number": po,
             "vendor": VENDORS[inv["vendor"]]["name"],
-            "date": PO_DATES.get(po, inv["date"]),
+            "date": inv["date"],
             "buyer": BUYER["name"],
             "lines": [{"line": i + 1, "sku": l["sku"], "description": VENDORS[inv["vendor"]]["catalog"][l["sku"]][0],
                        "qty": l["qty"], "unit": VENDORS[inv["vendor"]]["catalog"][l["sku"]][1],
@@ -520,12 +492,6 @@ def main():
         }
         (ROOT / "reference" / "receipts" / f"{rid}.json").write_text(json.dumps(receipts[po], indent=2))
 
-    paid_rows = []
-    for p in PAID:
-        write_invoice(ROOT / "reference" / "paid" / f"{p['number']}.pdf", p["vendor"], p["number"], p["date"], p["po"], p["lines"])
-        write_invoice_json(ROOT / "reference" / "paid" / f"{p['number']}.json", p["vendor"], p["number"], p["date"], p["po"], p["lines"])
-        paid_rows.append({k: p[k] for k in ["number", "date", "po", "paid_on"]} | {"total": invoice_total(p["lines"]), "vendor": VENDORS[p["vendor"]]["name"]})
-    (ROOT / "reference" / "paid_invoices.json").write_text(json.dumps(paid_rows, indent=2))
 
     expected = []
     for inv in INVOICES:

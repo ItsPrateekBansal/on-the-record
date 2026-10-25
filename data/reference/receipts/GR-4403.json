@@ -1,12 +1,17 @@
 {
   "receipt_id": "GR-4403",
-  "po_number": "PO-7690",
-  "vendor": "Bolt Industrial Supply LLC",
-  "date": "2026-09-30",
+  "po_number": "PO-7790",
+  "vendor": "Delta Office Solutions",
+  "date": "2026-10-24",
   "lines": [
     {
-      "sku": "BX-200",
-      "qty_received": 400,
+      "sku": "DO-PPR",
+      "qty_received": 40,
+      "unit": "case"
+    },
+    {
+      "sku": "DO-TNR",
+      "qty_received": 6,
       "unit": "unit"
     }
   ]

@@ -36,7 +36,7 @@ This means: **code freeze at 17:00**, submission ready by 17:45, pitch practice 
 
 ## Part 1: Positioning — what we are and are not
 
-**Do not sell this as three-way matching.** ERPs such as Oracle already do PO matching, receipt matching, tolerances, duplicate checks and invoice holds. If we pitch "AI invoice matching," the judges' first thought is "my ERP does that."
+**Do not sell this as three-way matching.** ERPs such as Oracle already do PO matching, receipt matching, tolerances and invoice holds. If we pitch "AI invoice matching," the judges' first thought is "my ERP does that."
 
 | Traditional ERP matching | Invoice Watchdog |
 | --- | --- |
@@ -46,7 +46,7 @@ This means: **code freeze at 17:00**, submission ready by 17:45, pitch practice 
 
 **One-paragraph pitch:**
 
-> Invoice Watchdog is a local, autonomous AP audit agent that continuously investigates supplier invoices against transactional records, commercial agreements and payment history. Unlike traditional matching, which checks whether an invoice agrees with procurement records, Watchdog catches cases where the invoice and the PO agree but both violate the underlying contract. A local AI model interprets the contract, deterministic code verifies every discrepancy, OpenShell keeps the data from leaking, and every action is evidence-backed and human-approved.
+> Invoice Watchdog is a local, autonomous AP audit agent that continuously investigates supplier invoices against transactional records and commercial agreements. Unlike traditional matching, which checks whether an invoice agrees with procurement records, Watchdog catches cases where the invoice and the PO agree but both violate the underlying contract. A local AI model interprets the contract, deterministic code verifies every discrepancy, OpenShell keeps the data from leaking, and every action is evidence-backed and human-approved.
 
 We **do** have PO, receipt and invoice data, so the transaction layer is genuine three-way matching. We show it as one layer of the audit, never as the innovation.
 
@@ -54,22 +54,20 @@ We **do** have PO, receipt and invoice data, so the transaction layer is genuine
 
 ## Part 2: How an audit works
 
-### 2.1 Three layers, three outcomes
+### 2.1 Two layers, three outcomes
 
-Every invoice goes through three layers. Each check returns **PASS**, **FAIL** or **NEEDS_REVIEW**.
+Every invoice goes through two layers. Each check returns **PASS**, **FAIL** or **NEEDS_REVIEW**.
 
 | Layer | Checks | Source |
 | --- | --- | --- |
 | A. Transaction | `po_price`, `po_quantity`, `receipt_quantity` | `reference/pos/`, `reference/receipts/` |
 | B. Commercial | `contract_price` (with volume tiers and unit conversion) | `reference/contracts/` |
-| C. Historical | `duplicate` (same vendor, same PO, same amount as a paid invoice) | `reference/paid_invoices.json` |
 
 **Invoice status:** FAIL if any check fails; otherwise NEEDS_REVIEW if any check could not be decided; otherwise PASS.
 
 **Amount at risk** (one formula, no double counting):
 
-- Duplicate: the whole invoice total.
-- Otherwise: invoice total − payable, where payable = Σ min(billed qty, PO qty, received qty) × min(billed price, contract price), all in contract units.
+- Invoice total − payable, where payable = Σ min(billed qty, PO qty, received qty) × min(billed price, contract price), all in contract units.
 - NEEDS_REVIEW: $0 at risk; the invoice total is shown as "under review."
 
 **NEEDS_REVIEW is a feature.** If the contract doesn't define a unit the invoice uses (for example "carton"), the system must not guess. It says so and hands the invoice to a person.
@@ -85,7 +83,6 @@ New invoice in data/inbox/
   → find the receipt:   reference/receipts/ (match on po_number)
   → find the contract:  reference/contracts/index.json → vendor → contract file and SKU clause
   → find the clause:    plain text search in <vendor>_contract.txt, then the model picks from the found lines
-  → find history:       reference/paid_invoices.json (same vendor)
   → extract commercial terms from the clause   (local model → Pydantic)
   → run the deterministic checks               (Python)
   → write the evidence package + audit log entry
@@ -112,16 +109,17 @@ AI interprets → Pydantic validates → Python decides → AI explains → huma
 
 Regenerate any time with `.venv/bin/python scripts/make_fake_data.py`. The script recomputes every expected result from the POs, receipts and contracts, and stops if its own answer key disagrees.
 
-### 3.1 Live demo (4 invoices, sent by email during the pitch)
+### 3.1 Live demo (3 invoices, sent by email during the pitch)
 
-| # | Supplier | Scenario | Transaction | Contract | History | At risk | Shows |
-| --- | --- | --- | --- | --- | --- | --- | --- |
-| 1 | **Bolt Industrial** | 500 × $13.44. **PO-7750 also says $13.44.** Contract 3.1 says $12.00 | PASS | **FAIL** | PASS | **$720** | **The differentiator:** PO match passes, contract fails |
-| 2 | Acme Packaging | INV-1043A: same vendor, PO and $2,400 as paid INV-1043 | PASS | PASS | **FAIL** | $2,400 | Historical intelligence |
-| 3 | Coastal Supply | Billed 100 pallets; PO-7781 ordered 80; receipt GR-4432 received 80 | **FAIL** | PASS | PASS | $1,200 | Ordinary matching, as a baseline |
-| 4 | Delta Office | Everything correct | PASS | PASS | PASS | $0 | Clean invoices pass |
+| # | Supplier | Scenario | Transaction | Contract | At risk | Shows |
+| --- | --- | --- | --- | --- | --- | --- |
+| 1 | **Bolt Industrial** | 500 × $13.44. **PO-7750 also says $13.44.** Contract 3.1 says $12.00 | PASS | **FAIL** | **$720** | **The differentiator:** PO match passes, contract fails |
+| 2 | Coastal Supply | Billed 100 pallets; PO-7781 ordered 80; receipt GR-4432 received 80 | **FAIL** | PASS | $1,200 | Ordinary matching, as a baseline |
+| 3 | Delta Office | Everything correct | PASS | PASS | $0 | Clean invoices pass |
 
-**Live total: 3 failed, $4,320 at risk.** Files are numbered so Bolt arrives first.
+**Live total: 2 failed, $1,920 at risk.** Files are numbered so Bolt arrives first.
+
+**Duplicates are out of scope.** ERPs already check them, and they aren't our story. There is no paid-invoice history in the data.
 
 ### 3.2 Wifi-off demo (1 invoice)
 
@@ -146,21 +144,19 @@ Bolt shows **contract price retrieval**. Evergreen shows **semantic interpretati
 
 ```
 data/
-├── demo/live/                01_bolt … 04_delta (PDF)
+├── demo/live/                01_bolt, 02_coastal, 03_delta (PDF + JSON)
 ├── demo/wifi_off/            05_evergreen_INV-EV-208.pdf
 ├── demo/overnight/           o01 … o14 (PDF)
 ├── reference/pos/            PO-*.json        (25 POs)
 ├── reference/receipts/       GR-*.json        (one per PO; GR-4432 = Coastal)
 ├── reference/contracts/      <vendor>_contract.pdf/.txt + index.json (vendor → file, dates, SKU → clause)
-├── reference/paid/           6 paid invoice PDFs
-├── reference/paid_invoices.json
 ├── reference/vendors.json
 ├── expected_results.json     the answer key (status, layers, at_risk, evidence, clause text)
 ├── inbox/                    new invoices land here
 └── outbox/                   ONLY human-approved disputes
 ```
 
-**Optional switch:** in `make_fake_data.py`, set Coastal's receipt to 75 (`RECEIPT_OVERRIDES`) to show "ordered 80, received 75, billed 100." Its amount becomes $1,500 and the live total $4,620. Update its `expect` line too. Only do this if the receipt layer is built.
+**Optional switch:** in `make_fake_data.py`, set Coastal's receipt to 75 (`RECEIPT_OVERRIDES`) to show "ordered 80, received 75, billed 100." Its amount becomes $1,500 and the live total $2,220. Update its `expect` line too. Only do this if the receipt layer is built.
 
 ---
 
@@ -179,20 +175,20 @@ data/
                        │ skill audit-invoices → python -m watchdog scan
                        ▼
             AUTONOMOUS INVESTIGATION
-          ┌────────────┼────────────┐
-          ▼            ▼            ▼
-     PO + RECEIPT   CONTRACT      HISTORY
-          └────────────┼────────────┘
+              ┌────────┴────────┐
+              ▼                 ▼
+         PO + RECEIPT       CONTRACT
+              └────────┬────────┘
                        ▼
                LOCAL MODEL (GB10)  extract facts
                        ▼
                  PYDANTIC GATE
                        ▼
               DETERMINISTIC PYTHON
-        ┌──────────────┼──────────────┐
-        ▼              ▼              ▼
-   Transaction     Commercial      Historical
-        └──────────────┼──────────────┘
+              ┌────────┴────────┐
+              ▼                 ▼
+         Transaction       Commercial
+              └────────┬────────┘
                        ▼
         EVIDENCE PACKAGE + HASH-CHAINED LOG (SQLite)
              ┌─────────┴─────────┐
@@ -222,7 +218,7 @@ data/
 ```
 watcher/inbox.py          done: watches data/inbox/, dispatches stable .json files
 parser/invoice_parser.py  done: validates invoices; Line.unit carries "box (12)", "carton"
-engine/                   B: retrieval + the three layers (port audit() from scripts/make_fake_data.py)
+engine/                   B: retrieval + the two layers (port audit() from scripts/make_fake_data.py)
 drafter/                  B: explanation + dispute draft (local model)
 dashboard/app.py          C: evidence screen, Approve, Verify
 audit/                    C: hash-chained log
@@ -240,7 +236,7 @@ The watcher reads `.json` today. Until PDF extraction with the local model works
 | Person | Role | Owns |
 | --- | --- | --- |
 | **A** | Platform + security | NemoClaw/OpenClaw/OpenShell install, Ollama, Slack, network policy, heartbeat, `audit-invoices` and `daily-summary` skills, Mailpit + `watchdog fetch`, **blocked-egress demo**, **wifi-off run** |
-| **B** | Brain | `watchdog scan`: extraction (model → Pydantic + 1 retry), evidence retrieval (PO, receipt, contract clause, history), the three layers of checks, unit conversion, NEEDS_REVIEW path, explanations and dispute drafts, `watchdog selftest` |
+| **B** | Brain | `watchdog scan`: extraction (model → Pydantic + 1 retry), evidence retrieval (PO, receipt, contract clause), the two layers of checks, unit conversion, NEEDS_REVIEW path, explanations and dispute drafts, `watchdog selftest` |
 | **C** | Screens + story | Streamlit evidence screen, Approve button, hash-chained audit log + Verify, morning summary numbers, then **pitch, demo script, backup video, README, submission** |
 
 **Already done (no one needs to build these):** the fake data set, the answer key, and `scripts/send_invoices.py` (emails PDFs into Mailpit).
@@ -385,7 +381,7 @@ Plumbing:
 | Time | A (Platform) | B (Brain) | C (Screens + story) | Checkpoint |
 | --- | --- | --- | --- | --- |
 | 10:00–11:00 | NemoClaw + Slack, policy, Mailpit | Model preflight | SQLite tables, dashboard shell reading `expected_results.json` | Model chosen, bot says hi |
-| 11:00–13:00 | `watchdog fetch`, skill runs `scan`, Slack alert | Extraction + Pydantic, retrieval, 3 layers, `selftest` | Evidence screen for Bolt, audit log | `selftest` on the 4 live invoices: Bolt contract FAIL with PO PASS, $4,320 total |
+| 11:00–13:00 | `watchdog fetch`, skill runs `scan`, Slack alert | Extraction + Pydantic, retrieval, 2 layers, `selftest` | Evidence screen for Bolt, audit log | `selftest` on the 3 live invoices: Bolt contract FAIL with PO PASS, $1,920 total |
 | 13:00–15:00 | Blocked-egress demo | NEEDS_REVIEW path, dispute drafts | Approve → outbox, Verify button, review card | Layer 1 end to end |
 | 15:00–16:30 | Heartbeat, `daily-summary` skill | Evergreen boxes, overnight selftest (14) | Pitch + demo script, first full practice | Email → Slack alert with nobody typing; summary "2 failed, $1,280, 1 review" |
 | 16:30–17:00 | Wifi-off run | Bug fixes | Backup video recording | Evergreen caught at $120 with wifi off |
@@ -401,9 +397,9 @@ If something blocks you for more than 30 minutes, ask a mentor right away.
 
 1. **Problem (15 s):** "Companies pay thousands of invoices. Their ERP checks that the invoice matches the PO. Nobody checks that the PO matches the contract."
 2. **Overnight (15 s):** the morning Slack summary: "Audited 14 invoices overnight. 2 failed, $1,280 at risk. 1 needs human review." Nobody asked it to.
-3. **Live (30 s):** email the 4 live invoices to Mailpit. The agent picks them up by itself. Three alerts appear; the clean one passes.
+3. **Live (30 s):** email the 3 live invoices to Mailpit. The agent picks them up by itself. Two alerts appear; the clean one passes.
 4. **The wow, Bolt (50 s):** open the evidence screen. "The invoice matches the PO perfectly: PASS. But Watchdog checks the agreement behind the transaction." Contract FAIL, clause 3.1 quoted, $720.
-5. **Baseline (5 s):** point at the Acme ($2,400, duplicate) and Coastal ($1,200, over-billed) alerts: "Watchdog runs the standard checks too, so it can replace a manual audit, not just add one more tool." Don't open them; ERPs can catch these, so they are not the story. If a judge says "my ERP does duplicates": "Right, we don't compete with that. Our point is the invoice your ERP approves, like Bolt."
+5. **Baseline (5 s):** point at the Coastal alert ($1,200, over-billed): "Watchdog runs the standard checks too, so it can replace a manual audit, not just add one more tool." Don't open it; ERPs catch this, so it is not the story. If a judge says "my ERP does that": "Right, we don't compete with that. Our point is the invoice your ERP approves, like Bolt."
 6. **Honest uncertainty (10 s):** the carton invoice: "The contract doesn't define a carton, so it asks a person instead of guessing."
 7. **Human approval (15 s):** "AI investigates. Code verifies. Humans authorize." Click Approve; the dispute moves to the outbox, ready to send. The agent sent nothing.
 8. **Cannot leak (20 s):** in Slack, ask the agent to upload the invoice to a public site. OpenShell blocks it.

@@ -18,13 +18,12 @@ at runtime.
    number, PO, total, line items). Tolerates messy real-world formats
    (`"$7,800.00"`, string quantities, aliased keys) and warns instead of
    failing on a missing total or a total that doesn't match its lines.
-3. **Audit engine** *(in progress)* — three layers, each check PASS, FAIL
+3. **Audit engine** *(in progress)* — two layers, each check PASS, FAIL
    or NEEDS_REVIEW:
    - *Transaction:* invoice vs PO and goods receipt (price, quantity).
    - *Commercial:* invoice vs the **contract** (price, volume tiers, units
      per box). This catches invoices that match the PO perfectly but still
      break the agreement.
-   - *Historical:* duplicates of already-paid invoices.
    AI reads the documents, Python makes every decision, and anything the
    contract doesn't define (e.g. "carton") goes to a person.
 4. **Dispute drafter + dashboard + audit trail** *(in progress)* — a
@@ -52,8 +51,8 @@ python3 scripts/send_invoices.py data/demo/live   # emails PDFs into Mailpit
 ```
 
 `data/expected_results.json` is the answer key: status, each layer, amount
-at risk and the quoted clauses for every invoice. Live set: 3 failures,
-$4,320 at risk, led by Bolt (PO match passes, contract check fails, $720).
+at risk and the quoted clauses for every invoice. Live set: 2 failures,
+$1,920 at risk, led by Bolt (PO match passes, contract check fails, $720).
 
 ## Test it
 

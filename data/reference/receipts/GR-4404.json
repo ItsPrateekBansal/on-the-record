@@ -1,12 +1,12 @@
 {
   "receipt_id": "GR-4404",
-  "po_number": "PO-7693",
-  "vendor": "Coastal Supply Co.",
-  "date": "2026-10-02",
+  "po_number": "PO-7802",
+  "vendor": "Evergreen Parts Inc.",
+  "date": "2026-10-24",
   "lines": [
     {
-      "sku": "CS-PAL",
-      "qty_received": 60,
+      "sku": "BR-6204",
+      "qty_received": 120,
       "unit": "unit"
     }
   ]

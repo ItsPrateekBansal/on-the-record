@@ -1,17 +1,12 @@
 {
   "receipt_id": "GR-4409",
-  "po_number": "PO-7790",
-  "vendor": "Delta Office Solutions",
-  "date": "2026-10-24",
+  "po_number": "PO-7764",
+  "vendor": "Coastal Supply Co.",
+  "date": "2026-10-21",
   "lines": [
     {
-      "sku": "DO-PPR",
-      "qty_received": 40,
-      "unit": "case"
-    },
-    {
-      "sku": "DO-TNR",
-      "qty_received": 6,
+      "sku": "CS-CRT",
+      "qty_received": 200,
       "unit": "unit"
     }
   ]
