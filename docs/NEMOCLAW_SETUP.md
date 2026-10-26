@@ -1,8 +1,5 @@
 # Connecting Nemotron, Qwen 32B and NemoClaw (on the GB10)
 
-The code is ready; these steps happen on the GB10. Steps 3–5 were written without access to a
-NemoClaw install, so check them against the NemoClaw docs or ask the NVIDIA mentors.
-
 ## 1. Pick the model (Nemotron 3 Super first, Qwen 32B as backup)
 
 ```bash
